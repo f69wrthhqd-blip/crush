@@ -54,6 +54,7 @@ func NewListMCPResourcesTool(cfg *config.ConfigStore, permissions permission.Ser
 					Action:      "list",
 					Description: fmt.Sprintf("List MCP resources from %s", params.MCPName),
 					Params:      ListMCPResourcesPermissionsParams(params),
+					ReadOnly:    true,
 				},
 			)
 			if err != nil {

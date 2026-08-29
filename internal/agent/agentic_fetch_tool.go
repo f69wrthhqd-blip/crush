@@ -90,6 +90,7 @@ func (c *coordinator) agenticFetchTool(_ context.Context, client *http.Client) (
 					Action:      "fetch",
 					Description: description,
 					Params:      tools.AgenticFetchPermissionsParams(params),
+					ReadOnly:    true,
 				},
 			)
 			if err != nil {

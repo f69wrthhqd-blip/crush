@@ -60,6 +60,7 @@ func NewReadMCPResourceTool(cfg *config.ConfigStore, permissions permission.Serv
 					Action:      "read",
 					Description: fmt.Sprintf("Read MCP resource from %s", params.MCPName),
 					Params:      ReadMCPResourcePermissionsParams(params),
+					ReadOnly:    true,
 				},
 			)
 			if err != nil {

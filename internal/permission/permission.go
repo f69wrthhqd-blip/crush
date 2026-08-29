@@ -51,6 +51,12 @@ type CreatePermissionRequest struct {
 	Action      string `json:"action"`
 	Params      any    `json:"params"`
 	Path        string `json:"path"`
+	// ReadOnly marks the invocation as side-effect free. While plan mode
+	// is active, read-only requests are allowed to proceed to the normal
+	// permission flow (allowlist, hook approval, or a UI prompt) instead
+	// of being rejected outright; only state-modifying requests are
+	// blocked.
+	ReadOnly bool `json:"read_only,omitempty"`
 }
 
 type PermissionNotification struct {
@@ -200,11 +206,12 @@ func (s *permissionService) Request(ctx context.Context, opts CreatePermissionRe
 
 	// Plan mode is a privilege reduction: state-modifying tools are
 	// rejected outright (with guidance instead of a prompt) so the model
-	// pivots to read-only investigation. Read-only tools never reach
-	// Request in the first place because their handlers skip it, so any
-	// request arriving while plan mode is active is by definition a
-	// write-class invocation.
-	if s.planMode.Load() {
+	// pivots to read-only investigation. Read-only requests are exempt:
+	// they carry no side effects and proceed to the normal permission
+	// flow (allowlist, hook approval, or a UI prompt), so read-only
+	// tools like fetch or view on out-of-tree files keep working during
+	// planning.
+	if s.planMode.Load() && !opts.ReadOnly {
 		return false, ErrPlanModeBlocksWrite
 	}
 

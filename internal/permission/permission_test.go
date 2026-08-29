@@ -154,6 +154,46 @@ func TestPermissionService_PlanModeBlocksWrites(t *testing.T) {
 	}
 }
 
+func TestPermissionService_PlanModeAllowsReadOnlyRequests(t *testing.T) {
+	t.Parallel()
+
+	// Read-only requests must survive plan mode and reach the normal
+	// permission flow instead of being rejected with guidance. Here the
+	// allowlist grants it; in a real session the UI would prompt.
+	service := NewPermissionService("/tmp", false, []string{"fetch:fetch"})
+	service.SetPlanMode(true)
+
+	granted, err := service.Request(t.Context(), CreatePermissionRequest{
+		SessionID:   "test-session",
+		ToolCallID:  "call-2",
+		ToolName:    "fetch",
+		Action:      "fetch",
+		Description: "fetch a URL",
+		Path:        "/tmp",
+		ReadOnly:    true,
+	})
+	if err != nil {
+		t.Fatalf("read-only request should not be blocked in plan mode: %v", err)
+	}
+	if !granted {
+		t.Error("expected read-only request to be granted via allowlist")
+	}
+
+	// Write-class invocations must still be rejected while plan mode is
+	// active, even when the caller is a tool that is sometimes read-only.
+	_, err = service.Request(t.Context(), CreatePermissionRequest{
+		SessionID:   "test-session",
+		ToolCallID:  "call-3",
+		ToolName:    "bash",
+		Action:      "execute",
+		Description: "state-modifying command",
+		Path:        "/tmp",
+	})
+	if !errors.Is(err, ErrPlanModeBlocksWrite) {
+		t.Fatalf("expected ErrPlanModeBlocksWrite for non-read-only request, got %v", err)
+	}
+}
+
 func TestPermissionService_HookApproval(t *testing.T) {
 	t.Parallel()
 

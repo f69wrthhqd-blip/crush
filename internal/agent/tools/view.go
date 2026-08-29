@@ -144,6 +144,7 @@ func NewViewTool(
 						Action:      "read",
 						Description: fmt.Sprintf("Read file outside working directory: %s", absFilePath),
 						Params:      ViewPermissionsParams(params),
+						ReadOnly:    true,
 					},
 				)
 				if permReqErr != nil {

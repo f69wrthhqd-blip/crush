@@ -87,6 +87,7 @@ func NewFetchTool(permissions permission.Service, workingDir string, client *htt
 					Action:      "fetch",
 					Description: fmt.Sprintf("Fetch content from URL: %s", params.URL),
 					Params:      FetchPermissionsParams(params),
+					ReadOnly:    true,
 				},
 			)
 			if err != nil {
