@@ -71,6 +71,9 @@ var summaryPrompt []byte
 var (
 	thinkTagRegex       = regexp.MustCompile(`(?s)<think>.*?</think>`)
 	orphanThinkTagRegex = regexp.MustCompile(`</?think>`)
+	// whitespaceCollapseRegex collapses runs of any whitespace (newlines,
+	// tabs, repeated spaces) into a single space for display.
+	whitespaceCollapseRegex = regexp.MustCompile(`\s+`)
 )
 
 type SessionAgentCall struct {
@@ -1724,24 +1727,31 @@ func hasUserTextMessage(msgs []message.Message) bool {
 	return false
 }
 
+// TitleFromPrompt derives a session title directly from a prompt without
+// calling the model. It strips thinking tags, collapses runs of whitespace,
+// trims surrounding whitespace, and truncates to 50 characters so the result
+// is safe to display in the sidebar and session list. It returns
+// DefaultSessionName only when the prompt is empty after cleaning.
+func TitleFromPrompt(prompt string) string {
+	title := thinkTagRegex.ReplaceAllString(prompt, "")
+	title = orphanThinkTagRegex.ReplaceAllString(title, "")
+	title = whitespaceCollapseRegex.ReplaceAllString(title, " ")
+	title = strings.TrimSpace(title)
+	if title == "" {
+		return DefaultSessionName
+	}
+	return ansi.Truncate(title, 50, "…")
+}
+
 // GenerateTitle generates a session title based on the initial prompt.
 func (a *sessionAgent) GenerateTitle(ctx context.Context, sessionID string, userPrompt string) {
 	if userPrompt == "" {
 		return
 	}
 
-	// Ensure the session always gets a title even if every path below
-	// fails or the context is cancelled before we finish.
-	var titleSaved bool
-	defer func() {
-		if !titleSaved {
-			fallbackCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
-			defer cancel()
-			if err := a.sessions.Rename(fallbackCtx, sessionID, DefaultSessionName); err != nil {
-				slog.Error("Failed to save fallback session title", "error", err)
-			}
-		}
-	}()
+	// Every path below must end with a title: an LLM-generated one, or a
+	// prompt-derived fallback. A session never regresses to a generic
+	// "Untitled Session" when the model fails.
 
 	smallModel := a.smallModel.Get()
 	largeModel := a.largeModel.Get()
@@ -1803,7 +1813,13 @@ func (a *sessionAgent) GenerateTitle(ctx context.Context, sessionID string, user
 		}
 	}
 	if !success {
-		// The deferred fallback will save the default session name.
+		// The model failed on both attempts. Fall back to a local,
+		// prompt-derived title so the session never stays untitled.
+		title := TitleFromPrompt(userPrompt)
+		saveErr := a.sessions.UpdateTitleAndUsage(ctx, sessionID, title, 0, 0, 0)
+		if saveErr != nil {
+			slog.Error("Failed to save fallback session title", "error", saveErr)
+		}
 		return
 	}
 
@@ -1818,14 +1834,8 @@ func (a *sessionAgent) GenerateTitle(ctx context.Context, sessionID string, user
 	title = strings.TrimSpace(title)
 	if title == "" {
 		// LLM returned empty content. Use the prompt itself as a
-		// fallback title, truncated to 50 chars, before resorting to
-		// the generic default.
-		fallback := strings.ReplaceAll(userPrompt, "\n", " ")
-		fallback = strings.TrimSpace(fallback)
-		if len(fallback) > 50 {
-			fallback = ansi.Truncate(fallback, 50, "…")
-		}
-		title = cmp.Or(fallback, DefaultSessionName)
+		// fallback title.
+		title = TitleFromPrompt(userPrompt)
 	}
 
 	// Calculate usage and cost.
@@ -1868,7 +1878,6 @@ func (a *sessionAgent) GenerateTitle(ctx context.Context, sessionID string, user
 		slog.Error("Failed to save session title and usage", "error", saveErr)
 		return
 	}
-	titleSaved = true
 }
 
 func (a *sessionAgent) openrouterCost(metadata fantasy.ProviderMetadata) *float64 {

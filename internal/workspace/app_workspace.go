@@ -145,7 +145,18 @@ func (w *AppWorkspace) AgentRunShellCommand(ctx context.Context, sessionID, comm
 		}
 	}
 
-	// Generate a title from the shell command if it was the first message.
+	// Name the session from the shell command if it was the first message.
+	// This runs before the async LLM title generation so the session is
+	// never shown as "Untitled Session" in the UI. The LLM-generated title,
+	// when it succeeds, overwrites this placeholder.
+	if isFirstMessage && sessionID != "" {
+		title := agent.TitleFromPrompt("$ " + command)
+		if saveErr := w.app.Sessions.UpdateTitleAndUsage(ctx, sessionID, title, 0, 0, 0); saveErr != nil {
+			slog.Error("Failed to save shell-command session title", "error", saveErr)
+		}
+	}
+
+	// Generate a refined title from the shell command if it was the first message.
 	if isFirstMessage && w.app.AgentCoordinator != nil {
 		titleCtx := context.WithoutCancel(ctx)
 		w.app.AgentCoordinator.GenerateTitle(titleCtx, sessionID, "$ "+command)
