@@ -443,5 +443,18 @@
   "update.development": "This is a development version of Crush. The latest version is v%s.",
   "chat.hypercredits": "%s Hypercredits",
   "question.add_a_note": "Add a note...",
-  "key.commands_hint": "/ or ctrl+p"
+  "key.commands_hint": "/ or ctrl+p",
+  "chat.lsp_restart": "Restart LSP",
+  "permission.required_title": "Permission Required",
+  "permission.path": "Path",
+  "permission.desc": "Desc",
+  "permission.url": "URL",
+  "permission.url_short": "URL:",
+  "permission.file_short": "File:",
+  "permission.timeout_short": "Timeout:",
+  "permission.prompt_short": "Prompt:",
+  "permission.directory_short": "Directory:",
+  "permission.starting_line": "Starting from line:",
+  "permission.lines_to_read": "Lines to read:",
+  "permission.ignore_patterns": "Ignore patterns:"
 }

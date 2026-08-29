@@ -1645,45 +1645,52 @@ func (t *baseToolMessageItem) formatAgentResultForCopy() string {
 	return result.String()
 }
 
+// PrettifyToolName returns a localized, human-readable name for a tool
+// name. It is the exported wrapper around prettifyToolName for use
+// outside the chat package.
+func PrettifyToolName(name string) string {
+	return prettifyToolName(name)
+}
+
 // prettifyToolName returns a human-readable name for tool names.
 func prettifyToolName(name string) string {
 	switch name {
 	case agent.AgentToolName:
-		return "Agent"
+		return i18n.T("chat.agent")
 	case tools.BashToolName:
-		return "Bash"
+		return i18n.T("chat.bash")
 	case tools.JobOutputToolName:
-		return "Job: Output"
+		return i18n.T("chat.job_output")
 	case tools.JobKillToolName:
-		return "Job: Kill"
+		return i18n.T("chat.job_kill")
 	case tools.DownloadToolName:
-		return "Download"
+		return i18n.T("chat.download")
 	case tools.EditToolName:
-		return "Edit"
+		return i18n.T("chat.edit")
 	case tools.MultiEditToolName:
-		return "Multi-Edit"
+		return i18n.T("chat.multiedit")
 	case tools.FetchToolName:
-		return "Fetch"
+		return i18n.T("chat.fetch")
 	case tools.AgenticFetchToolName:
-		return "Agentic Fetch"
+		return i18n.T("chat.agentic_fetch")
 	case tools.WebFetchToolName:
-		return "Fetch"
+		return i18n.T("chat.fetch")
 	case tools.WebSearchToolName:
-		return "Search"
+		return i18n.T("chat.search")
 	case tools.GlobToolName:
-		return "Glob"
+		return i18n.T("chat.glob")
 	case tools.GrepToolName:
-		return "Grep"
+		return i18n.T("chat.grep")
 	case tools.LSToolName:
-		return "List"
+		return i18n.T("chat.list")
 	case tools.SourcegraphToolName:
-		return "Sourcegraph"
+		return i18n.T("chat.sourcegraph")
 	case tools.TodosToolName:
-		return "To-Do"
+		return i18n.T("chat.todo")
 	case tools.ViewToolName:
-		return "View"
+		return i18n.T("chat.view")
 	case tools.WriteToolName:
-		return "Write"
+		return i18n.T("chat.write")
 	default:
 		return humanizedToolName(name)
 	}

@@ -983,7 +983,7 @@ func (m *UI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		if cmd := m.sendNotification(notification.Notification{
 			Title:   i18n.T("status.crush_waiting"),
-			Message: fmt.Sprintf(i18n.T("permission.required_to_execute"), msg.Payload.ToolName),
+			Message: fmt.Sprintf(i18n.T("permission.required_to_execute"), chat.PrettifyToolName(msg.Payload.ToolName)),
 		}); cmd != nil {
 			cmds = append(cmds, cmd)
 		}

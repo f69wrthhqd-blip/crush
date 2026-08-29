@@ -258,17 +258,17 @@ func (d *DockerMCPToolRenderContext) makeCompactHeader(sty *styles.Styles, tool 
 	action := tool
 	switch tool {
 	case "mcp-exec":
-		action = "exec"
+		action = i18n.T("chat.exec")
 	case "mcp-config-set":
-		action = "config-set"
+		action = i18n.T("chat.config_set")
 	case "mcp-find":
-		action = "find"
+		action = i18n.T("chat.find")
 	case "mcp-add":
-		action = "add"
+		action = i18n.T("chat.add")
 	case "mcp-remove":
-		action = "remove"
+		action = i18n.T("chat.remove")
 	case "code-mode":
-		action = "code-mode"
+		action = i18n.T("chat.code_mode")
 	default:
 		action = strings.ReplaceAll(tool, "-", " ")
 		action = strings.ReplaceAll(action, "_", " ")

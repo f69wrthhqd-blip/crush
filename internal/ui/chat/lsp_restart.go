@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/charmbracelet/crush/internal/agent/tools"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/message"
 	"github.com/charmbracelet/crush/internal/ui/styles"
 )
@@ -32,7 +33,7 @@ type LSPRestartToolRenderContext struct{}
 func (r *LSPRestartToolRenderContext) RenderTool(sty *styles.Styles, width int, opts *ToolRenderOpts) string {
 	cappedWidth := cappedMessageWidth(width)
 	if opts.IsPending() {
-		return pendingTool(sty, "Restart LSP", opts.Anim, opts.Compact)
+		return pendingTool(sty, i18n.T("chat.lsp_restart"), opts.Anim, opts.Compact)
 	}
 
 	var params tools.LSPRestartParams
@@ -43,7 +44,7 @@ func (r *LSPRestartToolRenderContext) RenderTool(sty *styles.Styles, width int, 
 		toolParams = append(toolParams, params.Name)
 	}
 
-	header := toolHeader(sty, opts.Status, "Restart LSP", cappedWidth, opts, toolParams...)
+	header := toolHeader(sty, opts.Status, i18n.T("chat.lsp_restart"), cappedWidth, opts, toolParams...)
 	if opts.Compact {
 		return header
 	}

@@ -10,6 +10,7 @@ import (
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/crush/internal/agent"
 	"github.com/charmbracelet/crush/internal/agent/tools"
 	"github.com/charmbracelet/crush/internal/fsext"
 	"github.com/charmbracelet/crush/internal/i18n"
@@ -449,7 +450,7 @@ func (p *Permissions) Draw(scr uv.Screen, area uv.Rectangle) *tea.Cursor {
 func (p *Permissions) renderHeader(contentWidth int) string {
 	t := p.com.Styles
 
-	title := common.DialogTitle(t, "Permission Required", contentWidth-t.Dialog.Title.GetHorizontalFrameSize(), t.Dialog.TitleGradFromColor, t.Dialog.TitleGradToColor)
+	title := common.DialogTitle(t, i18n.T("permission.required_title"), contentWidth-t.Dialog.Title.GetHorizontalFrameSize(), t.Dialog.TitleGradFromColor, t.Dialog.TitleGradToColor)
 	title = t.Dialog.Title.Render(title)
 
 	// Tool info.
@@ -464,18 +465,18 @@ func (p *Permissions) renderHeader(contentWidth int) string {
 		tools.DownloadToolName, tools.LSToolName:
 		// These tools show their own File/Directory line below.
 	default:
-		lines = append(lines, p.renderKeyValue("Path", fsext.PrettyPath(p.permission.Path), contentWidth))
+		lines = append(lines, p.renderKeyValue(i18n.T("permission.path"), fsext.PrettyPath(p.permission.Path), contentWidth))
 	}
 
 	// Add tool-specific header info.
 	switch p.permission.ToolName {
 	case tools.BashToolName:
 		if params, ok := p.permission.Params.(tools.BashPermissionsParams); ok {
-			lines = append(lines, p.renderKeyValue("Desc", params.Description, contentWidth))
+			lines = append(lines, p.renderKeyValue(i18n.T("permission.desc"), params.Description, contentWidth))
 		}
 	case tools.DownloadToolName:
 		if params, ok := p.permission.Params.(tools.DownloadPermissionsParams); ok {
-			lines = append(lines, p.renderKeyValue("URL", params.URL, contentWidth))
+			lines = append(lines, p.renderKeyValue(i18n.T("permission.url"), params.URL, contentWidth))
 			lines = append(lines, p.renderKeyValue(i18n.T("permission.file"), fsext.PrettyPath(params.FilePath), contentWidth))
 		}
 	case tools.EditToolName, tools.WriteToolName, tools.MultiEditToolName, tools.ViewToolName, tools.ReplaceSymbolToolName:
@@ -526,9 +527,70 @@ func (p *Permissions) renderToolName(width int) string {
 			toolPart := prettyName(parts[2])
 			toolName = fmt.Sprintf("%s %s %s", mcpName, styles.ArrowRightIcon, toolPart)
 		}
+	} else {
+		toolName = localizedToolName(toolName)
 	}
 
 	return p.renderKeyValue(i18n.T("permission.tool"), toolName, width)
+}
+
+// localizedToolName returns the localized display name for known tools,
+// falling back to the raw tool name for unknown ones.
+func localizedToolName(name string) string {
+	switch name {
+	case tools.BashToolName:
+		return i18n.T("chat.bash")
+	case tools.EditToolName:
+		return i18n.T("chat.edit")
+	case tools.WriteToolName:
+		return i18n.T("chat.write")
+	case tools.MultiEditToolName:
+		return i18n.T("chat.multiedit")
+	case tools.ViewToolName:
+		return i18n.T("chat.view")
+	case tools.LSToolName:
+		return i18n.T("chat.list")
+	case tools.DownloadToolName:
+		return i18n.T("chat.download")
+	case tools.FetchToolName:
+		return i18n.T("chat.fetch")
+	case tools.AgenticFetchToolName:
+		return i18n.T("chat.agentic_fetch")
+	case tools.WebFetchToolName:
+		return i18n.T("chat.fetch")
+	case tools.WebSearchToolName:
+		return i18n.T("chat.search")
+	case tools.GrepToolName:
+		return i18n.T("chat.grep")
+	case tools.GlobToolName:
+		return i18n.T("chat.glob")
+	case tools.SourcegraphToolName:
+		return i18n.T("chat.sourcegraph")
+	case tools.TodosToolName:
+		return i18n.T("chat.todo")
+	case tools.QuestionToolName:
+		return i18n.T("chat.question")
+	case tools.DiagnosticsToolName:
+		return i18n.T("chat.diagnostics")
+	case tools.DefinitionToolName:
+		return i18n.T("chat.find_definition")
+	case tools.ReferencesToolName:
+		return i18n.T("chat.find_references")
+	case tools.RenameToolName:
+		return i18n.T("chat.rename_symbol")
+	case tools.ReplaceSymbolToolName:
+		return i18n.T("chat.replace_symbol")
+	case tools.SymbolsToolName:
+		return i18n.T("chat.list_symbols")
+	case tools.CallHierarchyToolName:
+		return i18n.T("chat.call_hierarchy")
+	case tools.LSPRestartToolName:
+		return i18n.T("chat.lsp_restart")
+	case agent.AgentToolName:
+		return i18n.T("chat.agent")
+	default:
+		return prettyName(name)
+	}
 }
 
 // prettyName converts snake_case or kebab-case to Title Case.
@@ -646,9 +708,9 @@ func (p *Permissions) renderDownloadContent(width int) string {
 		return ""
 	}
 
-	content := fmt.Sprintf("URL: %s\nFile: %s", params.URL, fsext.PrettyPath(params.FilePath))
+	content := fmt.Sprintf("%s %s\n%s %s", i18n.T("permission.url_short"), params.URL, i18n.T("permission.file_short"), fsext.PrettyPath(params.FilePath))
 	if params.Timeout > 0 {
-		content += fmt.Sprintf("\nTimeout: %ds", params.Timeout)
+		content += fmt.Sprintf("\n%s %d", i18n.T("permission.timeout_short"), params.Timeout)
 	}
 
 	return p.renderContentPanel(content, width)
@@ -671,9 +733,9 @@ func (p *Permissions) renderAgenticFetchContent(width int) string {
 
 	var content string
 	if params.URL != "" {
-		content = fmt.Sprintf("URL: %s\n\nPrompt: %s", params.URL, params.Prompt)
+		content = fmt.Sprintf("%s %s\n\n%s %s", i18n.T("permission.url_short"), params.URL, i18n.T("permission.prompt_short"), params.Prompt)
 	} else {
-		content = fmt.Sprintf("Prompt: %s", params.Prompt)
+		content = fmt.Sprintf("%s %s", i18n.T("permission.prompt_short"), params.Prompt)
 	}
 
 	return p.renderContentPanel(content, width)
@@ -685,12 +747,12 @@ func (p *Permissions) renderViewContent(width int) string {
 		return ""
 	}
 
-	content := fmt.Sprintf("File: %s", fsext.PrettyPath(params.FilePath))
+	content := fmt.Sprintf("%s %s", i18n.T("permission.file_short"), fsext.PrettyPath(params.FilePath))
 	if params.Offset > 0 {
-		content += fmt.Sprintf("\nStarting from line: %d", params.Offset+1)
+		content += fmt.Sprintf("\n%s %d", i18n.T("permission.starting_line"), params.Offset+1)
 	}
 	if params.Limit > 0 && params.Limit != 2000 {
-		content += fmt.Sprintf("\nLines to read: %d", params.Limit)
+		content += fmt.Sprintf("\n%s %d", i18n.T("permission.lines_to_read"), params.Limit)
 	}
 
 	return p.renderContentPanel(content, width)
@@ -702,9 +764,9 @@ func (p *Permissions) renderLSContent(width int) string {
 		return ""
 	}
 
-	content := fmt.Sprintf("Directory: %s", fsext.PrettyPath(params.Path))
+	content := fmt.Sprintf("%s %s", i18n.T("permission.directory_short"), fsext.PrettyPath(params.Path))
 	if len(params.Ignore) > 0 {
-		content += fmt.Sprintf("\nIgnore patterns: %s", strings.Join(params.Ignore, ", "))
+		content += fmt.Sprintf("\n%s %s", i18n.T("permission.ignore_patterns"), strings.Join(params.Ignore, ", "))
 	}
 
 	return p.renderContentPanel(content, width)
