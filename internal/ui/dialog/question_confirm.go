@@ -8,6 +8,7 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/question"
 	"github.com/charmbracelet/crush/internal/ui/common"
 	"github.com/charmbracelet/crush/internal/ui/styles"
@@ -52,8 +53,8 @@ type ConfirmComponent struct {
 
 // NewConfirmComponent creates a new confirmation component.
 func NewConfirmComponent(sty *styles.Styles, title, description string, labels []string, requests []question.Question, answers []*question.Answer) *ConfirmComponent {
-	if title == "" || title == "Confirm" {
-		title = "Ready to go?"
+	if title == "" || title == i18n.T("question.confirm") {
+		title = i18n.T("question.ready_to_go")
 	}
 	return &ConfirmComponent{
 		Styles:           sty,
@@ -63,14 +64,14 @@ func NewConfirmComponent(sty *styles.Styles, title, description string, labels [
 		QuestionRequests: requests,
 		Answers:          answers,
 		confirmYes:       true,
-		keyLeft:          key.NewBinding(key.WithKeys("left"), key.WithHelp("←/→", "switch")),
-		keyRight:         key.NewBinding(key.WithKeys("right"), key.WithHelp("←/→", "switch")),
-		keyYes:           key.NewBinding(key.WithKeys("y"), key.WithHelp("y", "yes")),
-		keyNo:            key.NewBinding(key.WithKeys("n"), key.WithHelp("n", "no")),
-		keyEnter:         key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "confirm")),
+		keyLeft:          key.NewBinding(key.WithKeys("left"), key.WithHelp("←/→", i18n.T("key.switch"))),
+		keyRight:         key.NewBinding(key.WithKeys("right"), key.WithHelp("←/→", i18n.T("key.switch"))),
+		keyYes:           key.NewBinding(key.WithKeys("y"), key.WithHelp("y", i18n.T("key.yes"))),
+		keyNo:            key.NewBinding(key.WithKeys("n"), key.WithHelp("n", i18n.T("key.no"))),
+		keyEnter:         key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", i18n.T("key.confirm"))),
 		keyClose:         CloseKey,
-		keyUp:            key.NewBinding(key.WithKeys("up", "k"), key.WithHelp("↑", "scroll")),
-		keyDown:          key.NewBinding(key.WithKeys("down", "j"), key.WithHelp("↓", "scroll")),
+		keyUp:            key.NewBinding(key.WithKeys("up", "k"), key.WithHelp("↑", i18n.T("key.scroll"))),
+		keyDown:          key.NewBinding(key.WithKeys("down", "j"), key.WithHelp("↓", i18n.T("key.scroll"))),
 	}
 }
 
@@ -230,11 +231,11 @@ func (c *ConfirmComponent) Draw(scr uv.Screen, area uv.Rectangle) *tea.Cursor {
 	if missed := c.unansweredCount(); missed > 0 {
 		warnStyle := c.Styles.Tool.WarnTag
 		msgStyle := c.Styles.Tool.WarnMessage
-		word := "question"
+		word := i18n.T("question.unanswered_word")
 		if missed > 1 {
-			word = "questions"
+			word = i18n.T("question.unanswered_word_plural")
 		}
-		warn := warnStyle.Render("WARN") + " " + msgStyle.Render(fmt.Sprintf("%d %s unanswered", missed, word))
+		warn := warnStyle.Render("WARN") + " " + msgStyle.Render(fmt.Sprintf(i18n.T("question.unanswered"), missed, word))
 		lines = append(lines, line{text: warn})
 		lines = append(lines, line{}) // blank
 	}
@@ -245,8 +246,8 @@ func (c *ConfirmComponent) Draw(scr uv.Screen, area uv.Rectangle) *tea.Cursor {
 
 	totalLines := len(lines)
 	confirmButtonOpts := []common.ButtonOpts{
-		{Text: "Yup!", Selected: c.confirmYes, Padding: 3, UnderlineIndex: 0},
-		{Text: "Not yet", Selected: !c.confirmYes, Padding: 3, UnderlineIndex: 0},
+		{Text: i18n.T("question.yup"), Selected: c.confirmYes, Padding: 3, UnderlineIndex: 0},
+		{Text: i18n.T("question.not_yet"), Selected: !c.confirmYes, Padding: 3, UnderlineIndex: 0},
 	}
 	overflow := viewport > 0 && totalLines > viewport
 

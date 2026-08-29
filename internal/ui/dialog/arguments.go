@@ -2,6 +2,7 @@ package dialog
 
 import (
 	"cmp"
+	"fmt"
 	"strings"
 
 	"charm.land/bubbles/v2/help"
@@ -15,6 +16,7 @@ import (
 	"golang.org/x/text/language"
 
 	"github.com/charmbracelet/crush/internal/commands"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/ui/common"
 	"github.com/charmbracelet/crush/internal/ui/util"
 	uv "github.com/charmbracelet/ultraviolet"
@@ -203,7 +205,7 @@ func (a *Arguments) HandleMsg(msg tea.Msg) Action {
 				for i, arg := range a.arguments {
 					args[arg.ID] = a.inputs[i].Value()
 					if arg.Required && strings.TrimSpace(a.inputs[i].Value()) == "" {
-						warning = util.ReportWarn("Required argument '" + arg.Title + "' is missing.")
+						warning = util.ReportWarn(fmt.Sprintf(i18n.T("arguments.required_missing"), arg.Title))
 						break
 					}
 				}
@@ -312,7 +314,7 @@ func (a *Arguments) Draw(scr uv.Screen, area uv.Rectangle) *tea.Cursor {
 	// Use standard header
 	titleStyle := s.Dialog.Title
 
-	titleText := cmp.Or(a.title, "Arguments")
+	titleText := cmp.Or(a.title, i18n.T("arguments.title"))
 
 	header := common.DialogTitle(s, titleText, width, s.Dialog.TitleGradFromColor, s.Dialog.TitleGradToColor)
 
@@ -325,7 +327,7 @@ func (a *Arguments) Draw(scr uv.Screen, area uv.Rectangle) *tea.Cursor {
 
 	helpView := renderDialogHelp(s, &a.help, a, width)
 	if a.loading {
-		helpView = s.Dialog.HelpView.Width(width).Render(a.spinner.View() + " Generating Prompt...")
+		helpView = s.Dialog.HelpView.Width(width).Render(a.spinner.View() + i18n.T("arguments.generating_prompt"))
 	}
 
 	availableHeight := area.Dy() - s.Dialog.View.GetVerticalFrameSize() - dialogContentStyle.GetVerticalFrameSize() - lipgloss.Height(header) - lipgloss.Height(description) - lipgloss.Height(helpView) - 2 // extra spacing

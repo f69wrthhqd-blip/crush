@@ -5,6 +5,7 @@ import (
 
 	"github.com/charmbracelet/crush/internal/agent/tools"
 	"github.com/charmbracelet/crush/internal/fsext"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/message"
 	"github.com/charmbracelet/crush/internal/ui/styles"
 )
@@ -37,20 +38,20 @@ type GlobToolRenderContext struct{}
 func (g *GlobToolRenderContext) RenderTool(sty *styles.Styles, width int, opts *ToolRenderOpts) string {
 	cappedWidth := cappedMessageWidth(width)
 	if opts.IsPending() {
-		return pendingTool(sty, "Glob", opts.Anim, opts.Compact)
+		return pendingTool(sty, i18n.T("chat.glob"), opts.Anim, opts.Compact)
 	}
 
 	var params tools.GlobParams
 	if err := json.Unmarshal([]byte(opts.ToolCall.Input), &params); err != nil {
-		return toolErrorContent(sty, &message.ToolResult{Content: "Invalid parameters"}, cappedWidth)
+		return toolErrorContent(sty, &message.ToolResult{Content: i18n.T("chat.invalid_parameters")}, cappedWidth)
 	}
 
 	toolParams := []string{params.Pattern}
 	if params.Path != "" {
-		toolParams = append(toolParams, "path", params.Path)
+		toolParams = append(toolParams, i18n.T("chat.path"), params.Path)
 	}
 
-	header := toolHeader(sty, opts.Status, "Glob", cappedWidth, opts, toolParams...)
+	header := toolHeader(sty, opts.Status, i18n.T("chat.glob"), cappedWidth, opts, toolParams...)
 	if opts.Compact {
 		return header
 	}
@@ -96,26 +97,26 @@ type GrepToolRenderContext struct{}
 func (g *GrepToolRenderContext) RenderTool(sty *styles.Styles, width int, opts *ToolRenderOpts) string {
 	cappedWidth := cappedMessageWidth(width)
 	if opts.IsPending() {
-		return pendingTool(sty, "Grep", opts.Anim, opts.Compact)
+		return pendingTool(sty, i18n.T("chat.grep"), opts.Anim, opts.Compact)
 	}
 
 	var params tools.GrepParams
 	if err := json.Unmarshal([]byte(opts.ToolCall.Input), &params); err != nil {
-		return toolErrorContent(sty, &message.ToolResult{Content: "Invalid parameters"}, cappedWidth)
+		return toolErrorContent(sty, &message.ToolResult{Content: i18n.T("chat.invalid_parameters")}, cappedWidth)
 	}
 
 	toolParams := []string{params.Pattern}
 	if params.Path != "" {
-		toolParams = append(toolParams, "path", params.Path)
+		toolParams = append(toolParams, i18n.T("chat.path"), params.Path)
 	}
 	if params.Include != "" {
-		toolParams = append(toolParams, "include", params.Include)
+		toolParams = append(toolParams, i18n.T("chat.include"), params.Include)
 	}
 	if params.LiteralText {
-		toolParams = append(toolParams, "literal", "true")
+		toolParams = append(toolParams, i18n.T("chat.literal"), i18n.T("chat.true"))
 	}
 
-	header := toolHeader(sty, opts.Status, "Grep", cappedWidth, opts, toolParams...)
+	header := toolHeader(sty, opts.Status, i18n.T("chat.grep"), cappedWidth, opts, toolParams...)
 	if opts.Compact {
 		return header
 	}
@@ -161,12 +162,12 @@ type LSToolRenderContext struct{}
 func (l *LSToolRenderContext) RenderTool(sty *styles.Styles, width int, opts *ToolRenderOpts) string {
 	cappedWidth := cappedMessageWidth(width)
 	if opts.IsPending() {
-		return pendingTool(sty, "List", opts.Anim, opts.Compact)
+		return pendingTool(sty, i18n.T("chat.list"), opts.Anim, opts.Compact)
 	}
 
 	var params tools.LSParams
 	if err := json.Unmarshal([]byte(opts.ToolCall.Input), &params); err != nil {
-		return toolErrorContent(sty, &message.ToolResult{Content: "Invalid parameters"}, cappedWidth)
+		return toolErrorContent(sty, &message.ToolResult{Content: i18n.T("chat.invalid_parameters")}, cappedWidth)
 	}
 
 	path := params.Path
@@ -175,7 +176,7 @@ func (l *LSToolRenderContext) RenderTool(sty *styles.Styles, width int, opts *To
 	}
 	path = fsext.PrettyPath(path)
 
-	header := toolHeader(sty, opts.Status, "List", cappedWidth, opts, path)
+	header := toolHeader(sty, opts.Status, i18n.T("chat.list"), cappedWidth, opts, path)
 	if opts.Compact {
 		return header
 	}
@@ -221,23 +222,23 @@ type SourcegraphToolRenderContext struct{}
 func (s *SourcegraphToolRenderContext) RenderTool(sty *styles.Styles, width int, opts *ToolRenderOpts) string {
 	cappedWidth := cappedMessageWidth(width)
 	if opts.IsPending() {
-		return pendingTool(sty, "Sourcegraph", opts.Anim, opts.Compact)
+		return pendingTool(sty, i18n.T("chat.sourcegraph"), opts.Anim, opts.Compact)
 	}
 
 	var params tools.SourcegraphParams
 	if err := json.Unmarshal([]byte(opts.ToolCall.Input), &params); err != nil {
-		return toolErrorContent(sty, &message.ToolResult{Content: "Invalid parameters"}, cappedWidth)
+		return toolErrorContent(sty, &message.ToolResult{Content: i18n.T("chat.invalid_parameters")}, cappedWidth)
 	}
 
 	toolParams := []string{params.Query}
 	if params.Count != 0 {
-		toolParams = append(toolParams, "count", formatNonZero(params.Count))
+		toolParams = append(toolParams, i18n.T("chat.count"), formatNonZero(params.Count))
 	}
 	if params.ContextWindow != 0 {
-		toolParams = append(toolParams, "context", formatNonZero(params.ContextWindow))
+		toolParams = append(toolParams, i18n.T("chat.context"), formatNonZero(params.ContextWindow))
 	}
 
-	header := toolHeader(sty, opts.Status, "Sourcegraph", cappedWidth, opts, toolParams...)
+	header := toolHeader(sty, opts.Status, i18n.T("chat.sourcegraph"), cappedWidth, opts, toolParams...)
 	if opts.Compact {
 		return header
 	}

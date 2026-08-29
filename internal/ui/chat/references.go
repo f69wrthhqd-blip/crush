@@ -5,6 +5,7 @@ import (
 
 	"github.com/charmbracelet/crush/internal/agent/tools"
 	"github.com/charmbracelet/crush/internal/fsext"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/message"
 	"github.com/charmbracelet/crush/internal/ui/styles"
 )
@@ -33,7 +34,7 @@ type ReferencesToolRenderContext struct{}
 func (r *ReferencesToolRenderContext) RenderTool(sty *styles.Styles, width int, opts *ToolRenderOpts) string {
 	cappedWidth := cappedMessageWidth(width)
 	if opts.IsPending() {
-		return pendingTool(sty, "Find References", opts.Anim, opts.Compact)
+		return pendingTool(sty, i18n.T("chat.find_references"), opts.Anim, opts.Compact)
 	}
 
 	var params tools.ReferencesParams
@@ -41,10 +42,10 @@ func (r *ReferencesToolRenderContext) RenderTool(sty *styles.Styles, width int, 
 
 	toolParams := []string{params.Symbol}
 	if params.Path != "" {
-		toolParams = append(toolParams, "path", fsext.PrettyPath(params.Path))
+		toolParams = append(toolParams, i18n.T("chat.path"), fsext.PrettyPath(params.Path))
 	}
 
-	header := toolHeader(sty, opts.Status, "Find References", cappedWidth, opts, toolParams...)
+	header := toolHeader(sty, opts.Status, i18n.T("chat.find_references"), cappedWidth, opts, toolParams...)
 	if opts.Compact {
 		return header
 	}

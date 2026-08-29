@@ -8,6 +8,7 @@ import (
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/crush/internal/agent/tools"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/message"
 	"github.com/charmbracelet/crush/internal/ui/common"
 	"github.com/charmbracelet/crush/internal/ui/styles"
@@ -45,12 +46,12 @@ type BashToolRenderContext struct {
 func (b *BashToolRenderContext) RenderTool(sty *styles.Styles, width int, opts *ToolRenderOpts) string {
 	cappedWidth := cappedMessageWidth(width)
 	if opts.IsPending() {
-		return pendingTool(sty, "Bash", opts.Anim, opts.Compact)
+		return pendingTool(sty, i18n.T("chat.bash"), opts.Anim, opts.Compact)
 	}
 
 	var params tools.BashParams
 	if err := json.Unmarshal([]byte(opts.ToolCall.Input), &params); err != nil {
-		params.Command = "failed to parse command"
+		params.Command = i18n.T("chat.failed_to_parse_command")
 	}
 
 	// Check if this is a background job.
@@ -61,8 +62,8 @@ func (b *BashToolRenderContext) RenderTool(sty *styles.Styles, width int, opts *
 
 	if meta.Background {
 		description := cmp.Or(meta.Description, params.Command)
-		content := "Command: " + params.Command + "\n" + opts.Result.Content
-		return renderJobTool(sty, opts, cappedWidth, "Start", meta.ShellID, description, content)
+		content := i18n.T("chat.command_prefix") + params.Command + "\n" + opts.Result.Content
+		return renderJobTool(sty, opts, cappedWidth, i18n.T("chat.job_start"), meta.ShellID, description, content)
 	}
 
 	// Regular bash command.
@@ -77,10 +78,10 @@ func (b *BashToolRenderContext) RenderTool(sty *styles.Styles, width int, opts *
 	}
 	toolParams := []string{cmd}
 	if params.RunInBackground {
-		toolParams = append(toolParams, "background", "true")
+		toolParams = append(toolParams, i18n.T("chat.background"), i18n.T("chat.true"))
 	}
 
-	header := toolHeader(sty, opts.Status, "Bash", cappedWidth, opts, toolParams...)
+	header := toolHeader(sty, opts.Status, i18n.T("chat.bash"), cappedWidth, opts, toolParams...)
 	if opts.Compact {
 		return header
 	}
@@ -134,12 +135,12 @@ type JobOutputToolRenderContext struct{}
 func (j *JobOutputToolRenderContext) RenderTool(sty *styles.Styles, width int, opts *ToolRenderOpts) string {
 	cappedWidth := cappedMessageWidth(width)
 	if opts.IsPending() {
-		return pendingTool(sty, "Job", opts.Anim, opts.Compact)
+		return pendingTool(sty, i18n.T("chat.job"), opts.Anim, opts.Compact)
 	}
 
 	var params tools.JobOutputParams
 	if err := json.Unmarshal([]byte(opts.ToolCall.Input), &params); err != nil {
-		return toolErrorContent(sty, &message.ToolResult{Content: "Invalid parameters"}, cappedWidth)
+		return toolErrorContent(sty, &message.ToolResult{Content: i18n.T("chat.invalid_parameters")}, cappedWidth)
 	}
 
 	var description string
@@ -154,7 +155,7 @@ func (j *JobOutputToolRenderContext) RenderTool(sty *styles.Styles, width int, o
 	if opts.HasResult() {
 		content = opts.Result.Content
 	}
-	return renderJobTool(sty, opts, cappedWidth, "Output", params.ShellID, description, content)
+	return renderJobTool(sty, opts, cappedWidth, i18n.T("chat.job_output"), params.ShellID, description, content)
 }
 
 // -----------------------------------------------------------------------------
@@ -185,12 +186,12 @@ type JobKillToolRenderContext struct{}
 func (j *JobKillToolRenderContext) RenderTool(sty *styles.Styles, width int, opts *ToolRenderOpts) string {
 	cappedWidth := cappedMessageWidth(width)
 	if opts.IsPending() {
-		return pendingTool(sty, "Job", opts.Anim, opts.Compact)
+		return pendingTool(sty, i18n.T("chat.job"), opts.Anim, opts.Compact)
 	}
 
 	var params tools.JobKillParams
 	if err := json.Unmarshal([]byte(opts.ToolCall.Input), &params); err != nil {
-		return toolErrorContent(sty, &message.ToolResult{Content: "Invalid parameters"}, cappedWidth)
+		return toolErrorContent(sty, &message.ToolResult{Content: i18n.T("chat.invalid_parameters")}, cappedWidth)
 	}
 
 	var description string
@@ -205,7 +206,7 @@ func (j *JobKillToolRenderContext) RenderTool(sty *styles.Styles, width int, opt
 	if opts.HasResult() {
 		content = opts.Result.Content
 	}
-	return renderJobTool(sty, opts, cappedWidth, "Kill", params.ShellID, description, content)
+	return renderJobTool(sty, opts, cappedWidth, i18n.T("chat.job_kill"), params.ShellID, description, content)
 }
 
 // renderJobTool renders a job-related tool with the common pattern:
@@ -233,9 +234,9 @@ func renderJobTool(sty *styles.Styles, opts *ToolRenderOpts, width int, action, 
 // Format: "● Job (Action) PID shellID description..."
 func jobHeader(sty *styles.Styles, status ToolStatus, action, shellID, description string, width int) string {
 	icon := toolIcon(sty, status)
-	jobPart := sty.Tool.JobToolName.Render("Job")
+	jobPart := sty.Tool.JobToolName.Render(i18n.T("chat.job"))
 	actionPart := sty.Tool.JobAction.Render("(" + action + ")")
-	pidPart := sty.Tool.JobPID.Render("PID " + shellID)
+	pidPart := sty.Tool.JobPID.Render(fmt.Sprintf(i18n.T("chat.pid"), shellID))
 
 	prefix := fmt.Sprintf("%s %s %s %s", icon, jobPart, actionPart, pidPart)
 

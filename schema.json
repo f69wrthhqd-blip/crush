@@ -825,6 +825,15 @@
           ],
           "description": "Exit banner style after quitting Crush",
           "default": "default"
+        },
+        "locale": {
+          "type": "string",
+          "enum": [
+            "en",
+            "zh-CN"
+          ],
+          "description": "UI display language",
+          "default": "en"
         }
       },
       "additionalProperties": false,

@@ -10,6 +10,7 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/crush/internal/agent/hyper"
 	"github.com/charmbracelet/crush/internal/home"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/ui/styles"
 	"github.com/charmbracelet/x/ansi"
 	"golang.org/x/text/cases"
@@ -48,7 +49,7 @@ func ModelInfo(t *styles.Styles, modelName, providerName, reasoningInfo string, 
 	// Build first line with model name and optionally provider on the same line
 	var firstLine string
 	if providerName != "" {
-		providerInfo := t.ModelInfo.Provider.Render(fmt.Sprintf("via %s", providerName))
+		providerInfo := t.ModelInfo.Provider.Render(fmt.Sprintf(i18n.T("chat.via"), providerName))
 		modelWithProvider := fmt.Sprintf("%s %s %s", modelIcon, modelName, providerInfo)
 
 		// Check if it fits on one line
@@ -66,7 +67,7 @@ func ModelInfo(t *styles.Styles, modelName, providerName, reasoningInfo string, 
 
 	// If provider didn't fit on first line, add it as second line
 	if providerName != "" && !strings.Contains(firstLine, "via") {
-		providerInfo := fmt.Sprintf("via %s", providerName)
+		providerInfo := fmt.Sprintf(i18n.T("chat.via"), providerName)
 		parts = append(parts, t.ModelInfo.ProviderFallback.Render(providerInfo))
 	}
 
@@ -82,7 +83,7 @@ func ModelInfo(t *styles.Styles, modelName, providerName, reasoningInfo string, 
 	if providerName == hyper.DisplayName && hyperCredits != nil {
 		hcInfo := t.ModelInfo.HypercreditIcon.Render(styles.HypercreditIcon)
 		hcInfo += " "
-		hcInfo += t.ModelInfo.HypercreditText.Render(fmt.Sprintf("%s Hypercredits", FormatCredits(*hyperCredits)))
+		hcInfo += t.ModelInfo.HypercreditText.Render(fmt.Sprintf(i18n.T("chat.hypercredits"), FormatCredits(*hyperCredits)))
 		parts = append(parts, "", hcInfo)
 	}
 

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/charmbracelet/crush/internal/agent/tools"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/message"
 	"github.com/charmbracelet/crush/internal/ui/styles"
 )
@@ -32,13 +33,13 @@ type DefinitionToolRenderContext struct{}
 func (r *DefinitionToolRenderContext) RenderTool(sty *styles.Styles, width int, opts *ToolRenderOpts) string {
 	cappedWidth := cappedMessageWidth(width)
 	if opts.IsPending() {
-		return pendingTool(sty, "Find Definition", opts.Anim, opts.Compact)
+		return pendingTool(sty, i18n.T("chat.find_definition"), opts.Anim, opts.Compact)
 	}
 
 	var params tools.DefinitionParams
 	_ = json.Unmarshal([]byte(opts.ToolCall.Input), &params)
 
-	header := toolHeader(sty, opts.Status, "Find Definition", cappedWidth, opts, params.Symbol)
+	header := toolHeader(sty, opts.Status, i18n.T("chat.find_definition"), cappedWidth, opts, params.Symbol)
 	if opts.Compact {
 		return header
 	}

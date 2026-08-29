@@ -12,6 +12,7 @@ import (
 	"charm.land/catwalk/pkg/catwalk"
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/crush/internal/config"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/oauth"
 	"github.com/charmbracelet/crush/internal/ui/common"
 	"github.com/charmbracelet/crush/internal/ui/util"
@@ -104,15 +105,15 @@ func newOAuth(
 
 	m.keyMap.Copy = key.NewBinding(
 		key.WithKeys("c"),
-		key.WithHelp("c", "copy code"),
+		key.WithHelp("c", i18n.T("key.copy_code")),
 	)
 	m.keyMap.CopyURL = key.NewBinding(
 		key.WithKeys("u"),
-		key.WithHelp("u", "copy url"),
+		key.WithHelp("u", i18n.T("key.copy_url")),
 	)
 	m.keyMap.Submit = key.NewBinding(
 		key.WithKeys("enter", "ctrl+y"),
-		key.WithHelp("enter", "copy & open"),
+		key.WithHelp("enter", i18n.T("key.copy_and_open")),
 	)
 	m.keyMap.Close = CloseKey
 
@@ -305,16 +306,16 @@ func (m *OAuth) innerDialogContent() string {
 			Align(lipgloss.Center).
 			Render(
 				successStyle.Render(m.spinner.View()) +
-					statusTextStyle.Render("Initializing..."),
+					statusTextStyle.Render(i18n.T("oauth.initializing")),
 			)
 
 	case OAuthStateDisplay:
 		// Render each text segment with its own style. Wrapping the
 		// whole concatenation in a single style would lose the text
 		// color after enterKeyStyle's reset code.
-		instructionText := instructionStyle.Render("Press ") +
-			enterKeyStyle.Render("enter") +
-			instructionStyle.Render(" to copy the code below and open the browser.")
+		instructionText := instructionStyle.Render(i18n.T("oauth.press")) +
+			enterKeyStyle.Render(i18n.T("oauth.enter")) +
+			instructionStyle.Render(i18n.T("oauth.to_copy_open"))
 		instructions := lipgloss.NewStyle().
 			Width(innerWidth).
 			Padding(0, 1).
@@ -333,13 +334,13 @@ func (m *OAuth) innerDialogContent() string {
 		url := statusTextStyle.
 			Width(innerWidth).
 			Padding(0, 1).
-			Render("Browser not opening? Pay a visit to:\n" + link)
+			Render(i18n.T("oauth.browser_not_opening") + link)
 
 		waiting := statusTextStyle.
 			Width(innerWidth).
 			Padding(0, 1).
 			Render(
-				successStyle.Render(m.spinner.View()) + statusTextStyle.Render("Verifying..."),
+				successStyle.Render(m.spinner.View()) + statusTextStyle.Render(i18n.T("oauth.verifying")),
 			)
 
 		return lipgloss.JoinVertical(
@@ -359,7 +360,7 @@ func (m *OAuth) innerDialogContent() string {
 		return successStyle.
 			Width(innerWidth).
 			Padding(1).
-			Render("Authentication successful!")
+			Render(i18n.T("oauth.success"))
 
 	case OAuthStateSaving:
 		return lipgloss.NewStyle().
@@ -367,14 +368,14 @@ func (m *OAuth) innerDialogContent() string {
 			Align(lipgloss.Center).
 			Render(
 				successStyle.Render(m.spinner.View()) +
-					statusTextStyle.Render(" Fetching models..."),
+					statusTextStyle.Render(i18n.T("oauth.fetching_models")),
 			)
 
 	case OAuthStateError:
 		return errorStyle.
 			Width(innerWidth).
 			Padding(1).
-			Render("Authentication failed.")
+			Render(i18n.T("oauth.failed"))
 
 	default:
 		return ""
@@ -396,7 +397,7 @@ func (m *OAuth) ShortHelp() []key.Binding {
 		return []key.Binding{
 			key.NewBinding(
 				key.WithKeys("enter", "ctrl+y", "esc"),
-				key.WithHelp("enter", "finish"),
+				key.WithHelp("enter", i18n.T("key.finish")),
 			),
 		}
 
@@ -418,14 +419,14 @@ func (m *OAuth) copyCode() tea.Cmd {
 	if m.State != OAuthStateDisplay {
 		return nil
 	}
-	return common.CopyToClipboard(m.userCode, "Code copied to clipboard")
+	return common.CopyToClipboard(m.userCode, i18n.T("oauth.code_copied"))
 }
 
 func (m *OAuth) copyURL() tea.Cmd {
 	if m.State != OAuthStateDisplay {
 		return nil
 	}
-	return common.CopyToClipboard(m.verificationURL, "URL copied to clipboard")
+	return common.CopyToClipboard(m.verificationURL, i18n.T("oauth.url_copied"))
 }
 
 func (m *OAuth) copyCodeAndOpenURL() tea.Cmd {
@@ -434,7 +435,7 @@ func (m *OAuth) copyCodeAndOpenURL() tea.Cmd {
 	}
 	return common.CopyToClipboardWithCallback(
 		m.userCode,
-		"Code copied and URL opened",
+		i18n.T("oauth.code_copied_and_url_opened"),
 		func() tea.Msg {
 			if err := browser.OpenURL(m.verificationURL); err != nil {
 				return ActionOAuthErrored{fmt.Errorf("failed to open browser: %w", err)}

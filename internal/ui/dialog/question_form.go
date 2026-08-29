@@ -8,6 +8,7 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/question"
 	"github.com/charmbracelet/crush/internal/ui/common"
 	"github.com/charmbracelet/crush/internal/ui/styles"
@@ -101,7 +102,7 @@ func NewQuestionForm(sty *styles.Styles, batch question.Request) *QuestionForm {
 	if hasConfirm {
 		confirmTitle := batch.ConfirmTitle
 		if confirmTitle == "" {
-			confirmTitle = "Confirm"
+			confirmTitle = i18n.T("question.confirm")
 		}
 		confirmComp = NewConfirmComponent(
 			sty,
@@ -113,7 +114,7 @@ func NewQuestionForm(sty *styles.Styles, batch question.Request) *QuestionForm {
 		)
 		allLabels = make([]string, len(labels)+1)
 		copy(allLabels, labels)
-		allLabels[len(labels)] = "Confirm"
+		allLabels[len(labels)] = i18n.T("question.confirm")
 	}
 	showTabs := numQuestions > 1
 
@@ -130,11 +131,11 @@ func NewQuestionForm(sty *styles.Styles, batch question.Request) *QuestionForm {
 		confirmComp:  confirmComp,
 		keyPrevTab: key.NewBinding(
 			key.WithKeys("[", "ctrl+left"),
-			key.WithHelp("[", "prev tab"),
+			key.WithHelp("[", i18n.T("question.prev_tab")),
 		),
 		keyNextTab: key.NewBinding(
 			key.WithKeys("]", "ctrl+right"),
-			key.WithHelp("]", "next tab"),
+			key.WithHelp("]", i18n.T("question.next_tab")),
 		),
 		keyClose: CloseKey,
 	}

@@ -8,6 +8,7 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/question"
 	"github.com/charmbracelet/crush/internal/ui/styles"
 	uv "github.com/charmbracelet/ultraviolet"
@@ -32,8 +33,8 @@ func NewMultiChoice(sty *styles.Styles, req question.Question) *MultiChoice {
 	return &MultiChoice{
 		choiceList: cl,
 		selected:   make(map[int]bool),
-		keyToggle:  key.NewBinding(key.WithKeys(" ", "space"), key.WithHelp("space", "toggle")),
-		keyDone:    key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "done")),
+		keyToggle:  key.NewBinding(key.WithKeys(" ", "space"), key.WithHelp("space", i18n.T("key.toggle"))),
+		keyDone:    key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", i18n.T("key.done"))),
 	}
 }
 
@@ -150,7 +151,7 @@ func (d *MultiChoice) respond() question.Answer {
 // ShortHelp returns key bindings for the status bar.
 func (d *MultiChoice) ShortHelp() []key.Binding {
 	if d.activeNoteKey != "" && d.noteEditor.Focused() {
-		return []key.Binding{d.keyClose, key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "save note"))}
+		return []key.Binding{d.keyClose, key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", i18n.T("key.save_note")))}
 	}
 	if d.isFillIn() && d.fillIn.Focused() {
 		return []key.Binding{d.navUp, d.keyDone, d.keyClose}

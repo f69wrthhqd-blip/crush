@@ -15,6 +15,7 @@ import (
 	"github.com/charmbracelet/crush/internal/diff"
 	"github.com/charmbracelet/crush/internal/fsext"
 	"github.com/charmbracelet/crush/internal/hooks"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/message"
 	"github.com/charmbracelet/crush/internal/stringext"
 	"github.com/charmbracelet/crush/internal/ui/anim"
@@ -508,7 +509,7 @@ func (t *baseToolMessageItem) HandleMouseClick(btn ansi.MouseButton, x, y int) b
 func (t *baseToolMessageItem) HandleKeyEvent(key tea.KeyMsg) (bool, tea.Cmd) {
 	if k := key.String(); k == "c" || k == "y" {
 		text := t.formatToolForCopy()
-		return true, common.CopyToClipboard(text, "Tool content copied to clipboard")
+		return true, common.CopyToClipboard(text, i18n.T("clipboard.tool_copied"))
 	}
 	return false, nil
 }
@@ -538,11 +539,11 @@ func toolEarlyStateContent(sty *styles.Styles, opts *ToolRenderOpts, width int) 
 	case ToolStatusError:
 		msg = toolErrorContent(sty, opts.Result, width)
 	case ToolStatusCanceled:
-		msg = sty.Tool.StateCancelled.Render("Canceled.")
+		msg = sty.Tool.StateCancelled.Render(i18n.T("chat.cancelled"))
 	case ToolStatusAwaitingPermission:
-		msg = sty.Tool.StateWaiting.Render("Requesting permission...")
+		msg = sty.Tool.StateWaiting.Render(i18n.T("chat.requesting_permission"))
 	case ToolStatusRunning:
-		msg = sty.Tool.StateWaiting.Render("Waiting for tool response...")
+		msg = sty.Tool.StateWaiting.Render(i18n.T("chat.waiting_for_response"))
 	default:
 		return "", false
 	}
@@ -557,12 +558,12 @@ func toolErrorContent(sty *styles.Styles, result *message.ToolResult, width int)
 	errContent := strings.ReplaceAll(result.Content, "\n", " ")
 	if strings.Contains(errContent, "User denied permission") ||
 		strings.Contains(errContent, "User cancelled") {
-		deniedTag := sty.Tool.WarnTag.Render("WARN")
+		deniedTag := sty.Tool.WarnTag.Render(i18n.T("chat.warn"))
 		deniedTagWidth := lipgloss.Width(deniedTag)
 		errContent = ansi.Truncate(errContent, width-deniedTagWidth-3, "…")
 		return fmt.Sprintf("%s %s", deniedTag, sty.Tool.WarnMessage.Render(errContent))
 	}
-	errTag := sty.Tool.ErrorTag.Render("ERROR")
+	errTag := sty.Tool.ErrorTag.Render(i18n.T("chat.error"))
 	tagWidth := lipgloss.Width(errTag)
 	errContent = ansi.Truncate(errContent, width-tagWidth-3, "…")
 	return fmt.Sprintf("%s %s", errTag, sty.Tool.ErrorMessage.Render(errContent))
@@ -677,7 +678,7 @@ func toolOutputPlainContent(sty *styles.Styles, content string, width int, expan
 	if !expanded && wasTruncated {
 		out = append(out, sty.Tool.ContentTruncation.
 			Width(width).
-			Render(fmt.Sprintf(assistantMessageTruncateFormat, len(lines)-responseContextHeight)))
+			Render(fmt.Sprintf(i18n.T("chat.lines_hidden"), len(lines)-responseContextHeight)))
 	}
 
 	return strings.Join(out, "\n")
@@ -730,7 +731,7 @@ func toolOutputCodeContent(sty *styles.Styles, path, content string, offset, wid
 		out = append(
 			out, sty.Tool.ContentCodeTruncation.
 				Width(width).
-				Render(fmt.Sprintf(assistantMessageTruncateFormat, len(lines)-maxLines)),
+				Render(fmt.Sprintf(i18n.T("chat.lines_hidden"), len(lines)-maxLines)),
 		)
 	}
 
@@ -742,20 +743,20 @@ func toolOutputImageContent(sty *styles.Styles, data, mediaType string) string {
 	dataSize := len(data) * 3 / 4
 	sizeStr := formatSize(dataSize)
 
-	return sty.Tool.Body.Render(fmt.Sprintf(
+	return fmt.Sprintf(
 		"%s %s %s %s",
-		sty.Tool.ResourceLoadedText.Render("Loaded Image"),
+		sty.Tool.ResourceLoadedText.Render(i18n.T("chat.loaded_image")),
 		sty.Tool.ResourceLoadedIndicator.Render(styles.ArrowRightIcon),
 		sty.Tool.MediaType.Render(mediaType),
 		sty.Tool.ResourceSize.Render(sizeStr),
-	))
+	)
 }
 
 // toolOutputSkillContent renders a skill loaded indicator.
 func toolOutputSkillContent(sty *styles.Styles, name, description string) string {
 	return sty.Tool.Body.Render(fmt.Sprintf(
 		"%s %s %s %s",
-		sty.Tool.ResourceLoadedText.Render("Loaded Skill"),
+		sty.Tool.ResourceLoadedText.Render(i18n.T("chat.loaded_skill")),
 		sty.Tool.ResourceLoadedIndicator.Render(styles.ArrowRightIcon),
 		sty.Tool.ResourceName.Render(name),
 		sty.Tool.ResourceSize.Render(description),
@@ -816,7 +817,7 @@ func toolOutputHookIndicator(sty *styles.Styles, metadata string, width int) str
 	// per-line layout is:
 	//   "Hook " + name(padded) + [" " + matcher(padded)] + " → " + detail
 	if width > 0 {
-		fixed := lipgloss.Width(sty.Tool.HookLabel.Render("Hook")) + 1
+		fixed := lipgloss.Width(sty.Tool.HookLabel.Render(i18n.T("chat.hook"))) + 1
 		if maxMatcherWidth > 0 {
 			fixed += 1 + maxMatcherWidth
 		}
@@ -891,7 +892,7 @@ func renderHookLine(sty *styles.Styles, hi hooks.HookInfo, rawName, detail strin
 
 	return fmt.Sprintf(
 		"%s %s%s%s %s %s",
-		labelStyle.Render("Hook"),
+		labelStyle.Render(i18n.T("chat.hook")),
 		name,
 		namePad,
 		matcherPart,
@@ -902,27 +903,22 @@ func renderHookLine(sty *styles.Styles, hi hooks.HookInfo, rawName, detail strin
 
 // hookDetail returns the styled detail text for a single hook result.
 func hookDetail(sty *styles.Styles, hi hooks.HookInfo) string {
-	const (
-		okMessage      = "OK"
-		denialMessage  = "Denied"
-		rewroteMessage = "Rewrote Output"
-	)
 	switch hi.Decision {
 	case "deny":
 		if hi.Reason != "" {
-			return sty.Tool.HookDenied.Render(denialMessage) + " " + sty.Tool.HookDeniedReason.Render(hi.Reason)
+			return sty.Tool.HookDenied.Render(i18n.T("chat.hook_denied")) + " " + sty.Tool.HookDeniedReason.Render(hi.Reason)
 		}
-		return sty.Tool.HookDenied.Render(denialMessage)
+		return sty.Tool.HookDenied.Render(i18n.T("chat.hook_denied"))
 	case "allow":
-		result := sty.Tool.HookOK.Render(okMessage)
+		result := sty.Tool.HookOK.Render(i18n.T("chat.hook_ok"))
 		if hi.InputRewrite {
-			result += " " + sty.Tool.HookRewrote.Render(rewroteMessage)
+			result += " " + sty.Tool.HookRewrote.Render(i18n.T("chat.hook_rewrote"))
 		}
 		return result
 	default:
-		result := sty.Tool.HookOK.Render(okMessage)
+		result := sty.Tool.HookOK.Render(i18n.T("chat.hook_ok"))
 		if hi.InputRewrite {
-			result += " " + sty.Tool.HookRewrote.Render(rewroteMessage)
+			result += " " + sty.Tool.HookRewrote.Render(i18n.T("chat.hook_rewrote"))
 		}
 		return result
 	}
@@ -986,7 +982,7 @@ func toolOutputDiffContent(sty *styles.Styles, file, oldContent, newContent stri
 	if len(lines) > maxLines && !expanded {
 		truncMsg := sty.Tool.DiffTruncation.
 			Width(bodyWidth).
-			Render(fmt.Sprintf(assistantMessageTruncateFormat, len(lines)-maxLines))
+			Render(fmt.Sprintf(i18n.T("chat.lines_hidden"), len(lines)-maxLines))
 		formatted = strings.Join(lines[:maxLines], "\n") + "\n" + truncMsg
 	}
 
@@ -1036,14 +1032,14 @@ func toolOutputMultiEditDiffContent(sty *styles.Styles, file string, meta tools.
 	if len(lines) > maxLines && !expanded {
 		truncMsg := sty.Tool.DiffTruncation.
 			Width(bodyWidth).
-			Render(fmt.Sprintf(assistantMessageTruncateFormat, len(lines)-maxLines))
+			Render(fmt.Sprintf(i18n.T("chat.lines_hidden"), len(lines)-maxLines))
 		formatted = truncMsg + "\n" + strings.Join(lines[:maxLines], "\n")
 	}
 
 	// Add failed edits note if any exist.
 	if len(meta.EditsFailed) > 0 {
-		noteTag := sty.Tool.NoteTag.Render("Note")
-		noteMsg := fmt.Sprintf("%d of %d edits succeeded", meta.EditsApplied, totalEdits)
+		noteTag := sty.Tool.NoteTag.Render(i18n.T("chat.note"))
+		noteMsg := fmt.Sprintf(i18n.T("chat.edits_succeeded"), meta.EditsApplied, totalEdits)
 		note := fmt.Sprintf("%s %s", noteTag, sty.Tool.NoteMessage.Render(noteMsg))
 		formatted = formatted + "\n\n" + note
 	}
@@ -1105,7 +1101,7 @@ func toolOutputMarkdownContent(sty *styles.Styles, content string, width int, ex
 		out = append(
 			out, sty.Tool.ContentTruncation.
 				Width(width).
-				Render(fmt.Sprintf(assistantMessageTruncateFormat, len(lines)-maxLines)),
+				Render(fmt.Sprintf(i18n.T("chat.lines_hidden"), len(lines)-maxLines)),
 		)
 	}
 
@@ -1117,33 +1113,33 @@ func (t *baseToolMessageItem) formatToolForCopy() string {
 	var parts []string
 
 	toolName := prettifyToolName(t.toolCall.Name)
-	parts = append(parts, fmt.Sprintf("## %s Tool Call", toolName))
+	parts = append(parts, fmt.Sprintf(i18n.T("chat.tool_call"), toolName))
 
 	if t.toolCall.Input != "" {
 		params := t.formatParametersForCopy()
 		if params != "" {
-			parts = append(parts, "### Parameters:")
+			parts = append(parts, i18n.T("chat.parameters"))
 			parts = append(parts, params)
 		}
 	}
 
 	if t.result != nil && t.result.ToolCallID != "" {
 		if t.result.IsError {
-			parts = append(parts, "### Error:")
+			parts = append(parts, i18n.T("chat.error_section"))
 			parts = append(parts, t.result.Content)
 		} else {
-			parts = append(parts, "### Result:")
+			parts = append(parts, i18n.T("chat.result_section"))
 			content := t.formatResultForCopy()
 			if content != "" {
 				parts = append(parts, content)
 			}
 		}
 	} else if t.status == ToolStatusCanceled {
-		parts = append(parts, "### Status:")
-		parts = append(parts, "Cancelled")
+		parts = append(parts, i18n.T("chat.status_section"))
+		parts = append(parts, i18n.T("chat.cancelled_copied"))
 	} else {
-		parts = append(parts, "### Status:")
-		parts = append(parts, "Pending...")
+		parts = append(parts, i18n.T("chat.status_section"))
+		parts = append(parts, i18n.T("chat.pending"))
 	}
 
 	return strings.Join(parts, "\n\n")
@@ -1157,18 +1153,18 @@ func (t *baseToolMessageItem) formatParametersForCopy() string {
 		if json.Unmarshal([]byte(t.toolCall.Input), &params) == nil {
 			cmd := strings.ReplaceAll(params.Command, "\n", " ")
 			cmd = strings.ReplaceAll(cmd, "\t", "    ")
-			return fmt.Sprintf("**Command:** %s", cmd)
+			return fmt.Sprintf(i18n.T("chat.bold_command"), cmd)
 		}
 	case tools.ViewToolName:
 		var params tools.ViewParams
 		if json.Unmarshal([]byte(t.toolCall.Input), &params) == nil {
 			var parts []string
-			parts = append(parts, fmt.Sprintf("**File:** %s", fsext.PrettyPath(params.FilePath)))
+			parts = append(parts, fmt.Sprintf(i18n.T("chat.bold_file"), fsext.PrettyPath(params.FilePath)))
 			if params.Limit > 0 {
-				parts = append(parts, fmt.Sprintf("**Limit:** %d", params.Limit))
+				parts = append(parts, fmt.Sprintf(i18n.T("chat.bold_limit"), params.Limit))
 			}
 			if params.Offset > 0 {
-				parts = append(parts, fmt.Sprintf("**Offset:** %d", params.Offset))
+				parts = append(parts, fmt.Sprintf(i18n.T("chat.bold_offset"), params.Offset))
 			}
 			return strings.Join(parts, "\n")
 		}
@@ -1181,8 +1177,8 @@ func (t *baseToolMessageItem) formatParametersForCopy() string {
 		var params tools.MultiEditParams
 		if json.Unmarshal([]byte(t.toolCall.Input), &params) == nil {
 			var parts []string
-			parts = append(parts, fmt.Sprintf("**File:** %s", fsext.PrettyPath(params.FilePath)))
-			parts = append(parts, fmt.Sprintf("**Edits:** %d", len(params.Edits)))
+			parts = append(parts, fmt.Sprintf(i18n.T("chat.bold_file"), fsext.PrettyPath(params.FilePath)))
+			parts = append(parts, fmt.Sprintf(i18n.T("chat.bold_edits"), len(params.Edits)))
 			return strings.Join(parts, "\n")
 		}
 	case tools.WriteToolName:
@@ -1194,12 +1190,12 @@ func (t *baseToolMessageItem) formatParametersForCopy() string {
 		var params tools.FetchParams
 		if json.Unmarshal([]byte(t.toolCall.Input), &params) == nil {
 			var parts []string
-			parts = append(parts, fmt.Sprintf("**URL:** %s", params.URL))
+			parts = append(parts, fmt.Sprintf(i18n.T("chat.bold_url"), params.URL))
 			if params.Format != "" {
-				parts = append(parts, fmt.Sprintf("**Format:** %s", params.Format))
+				parts = append(parts, fmt.Sprintf(i18n.T("chat.bold_format"), params.Format))
 			}
 			if params.Timeout > 0 {
-				parts = append(parts, fmt.Sprintf("**Timeout:** %ds", params.Timeout))
+				parts = append(parts, fmt.Sprintf(i18n.T("chat.bold_timeout"), params.Timeout))
 			}
 			return strings.Join(parts, "\n")
 		}
@@ -1208,17 +1204,17 @@ func (t *baseToolMessageItem) formatParametersForCopy() string {
 		if json.Unmarshal([]byte(t.toolCall.Input), &params) == nil {
 			var parts []string
 			if params.URL != "" {
-				parts = append(parts, fmt.Sprintf("**URL:** %s", params.URL))
+				parts = append(parts, fmt.Sprintf(i18n.T("chat.bold_url"), params.URL))
 			}
 			if params.Prompt != "" {
-				parts = append(parts, fmt.Sprintf("**Prompt:** %s", params.Prompt))
+				parts = append(parts, fmt.Sprintf(i18n.T("chat.bold_prompt"), params.Prompt))
 			}
 			return strings.Join(parts, "\n")
 		}
 	case tools.WebFetchToolName:
 		var params tools.WebFetchParams
 		if json.Unmarshal([]byte(t.toolCall.Input), &params) == nil {
-			return fmt.Sprintf("**URL:** %s", params.URL)
+			return fmt.Sprintf(i18n.T("chat.bold_url"), params.URL)
 		}
 	case tools.GrepToolName:
 		var params tools.GrepParams
@@ -1259,10 +1255,10 @@ func (t *baseToolMessageItem) formatParametersForCopy() string {
 		var params tools.DownloadParams
 		if json.Unmarshal([]byte(t.toolCall.Input), &params) == nil {
 			var parts []string
-			parts = append(parts, fmt.Sprintf("**URL:** %s", params.URL))
-			parts = append(parts, fmt.Sprintf("**File Path:** %s", fsext.PrettyPath(params.FilePath)))
+			parts = append(parts, fmt.Sprintf(i18n.T("chat.bold_url"), params.URL))
+			parts = append(parts, fmt.Sprintf(i18n.T("chat.bold_file_path"), fsext.PrettyPath(params.FilePath)))
 			if params.Timeout > 0 {
-				parts = append(parts, fmt.Sprintf("**Timeout:** %s", (time.Duration(params.Timeout)*time.Second).String()))
+				parts = append(parts, fmt.Sprintf(i18n.T("chat.bold_timeout_dur"), (time.Duration(params.Timeout)*time.Second).String()))
 			}
 			return strings.Join(parts, "\n")
 		}

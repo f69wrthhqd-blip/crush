@@ -4,6 +4,7 @@ import (
 	"charm.land/catwalk/pkg/catwalk"
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/crush/internal/config"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/ui/common"
 	"github.com/charmbracelet/crush/internal/ui/list"
 	"github.com/charmbracelet/crush/internal/ui/styles"
@@ -46,7 +47,7 @@ func (m *ModelGroup) Render(width int) string {
 	var configured string
 	if m.configured {
 		configuredIcon := m.t.ToolCallSuccess.Render()
-		configuredText := m.t.Dialog.Models.ConfiguredText.Render("Configured")
+		configuredText := m.t.Dialog.Models.ConfiguredText.Render(i18n.T("model.configured"))
 		configured = configuredIcon + " " + configuredText
 	}
 

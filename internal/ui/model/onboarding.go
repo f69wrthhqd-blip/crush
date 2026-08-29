@@ -10,6 +10,7 @@ import (
 	"charm.land/lipgloss/v2"
 
 	"github.com/charmbracelet/crush/internal/home"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/ui/common"
 	"github.com/charmbracelet/crush/internal/ui/util"
 )
@@ -20,7 +21,7 @@ func (m *UI) markProjectInitializedCmd() tea.Cmd {
 		if err := m.com.Workspace.MarkProjectInitialized(); err != nil {
 			return util.InfoMsg{
 				Type: util.InfoTypeError,
-				Msg:  fmt.Sprintf("Failed to mark project as initialized: %v", err),
+				Msg:  fmt.Sprintf(i18n.T("status.failed_to_mark_project"), err),
 				TTL:  15 * time.Second,
 			}
 		}
@@ -59,7 +60,7 @@ func (m *UI) initializeProject() tea.Cmd {
 		if err != nil {
 			return util.InfoMsg{
 				Type: util.InfoTypeError,
-				Msg:  fmt.Sprintf("Failed to initialize project: %v", err),
+				Msg:  fmt.Sprintf(i18n.T("status.failed_to_initialize_project"), err),
 			}
 		}
 		return sendMessageMsg{Content: initPrompt}
@@ -84,15 +85,15 @@ func (m *UI) initializeView() string {
 	cwd := home.Short(m.com.Workspace.WorkingDir())
 	initFile := m.com.Config().Options.InitializeAs
 
-	header := s.Header.Render("Would you like to initialize this project?")
+	header := s.Header.Render(i18n.T("onboarding.would_you_like"))
 	path := s.Accent.PaddingLeft(2).Render(cwd)
-	desc := s.Content.Render(fmt.Sprintf("When I initialize your codebase I examine the project and put the result into an %s file which serves as general context.", initFile))
-	hint := s.Content.Render("You can also initialize anytime via ") + s.Accent.Render("ctrl+p") + s.Content.Render(".")
-	prompt := s.Content.Render("Would you like to initialize now?")
+	desc := s.Content.Render(fmt.Sprintf(i18n.T("onboarding.description"), initFile))
+	hint := s.Content.Render(i18n.T("onboarding.hint")) + s.Accent.Render("ctrl+p") + s.Content.Render(i18n.T("onboarding.hint2"))
+	prompt := s.Content.Render(i18n.T("onboarding.initialize_now"))
 
 	buttons := common.ButtonGroup(m.com.Styles, []common.ButtonOpts{
-		{Text: "Yep!", Selected: m.onboarding.yesInitializeSelected},
-		{Text: "Nope", Selected: !m.onboarding.yesInitializeSelected},
+		{Text: i18n.T("onboarding.yep"), Selected: m.onboarding.yesInitializeSelected},
+		{Text: i18n.T("onboarding.nope"), Selected: !m.onboarding.yesInitializeSelected},
 	}, " ")
 
 	// max width 60 so the text is compact

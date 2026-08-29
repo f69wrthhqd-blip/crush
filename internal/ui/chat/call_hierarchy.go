@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/charmbracelet/crush/internal/agent/tools"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/message"
 	"github.com/charmbracelet/crush/internal/ui/styles"
 )
@@ -32,17 +33,17 @@ type CallHierarchyToolRenderContext struct{}
 func (r *CallHierarchyToolRenderContext) RenderTool(sty *styles.Styles, width int, opts *ToolRenderOpts) string {
 	cappedWidth := cappedMessageWidth(width)
 	if opts.IsPending() {
-		return pendingTool(sty, "Call Hierarchy", opts.Anim, opts.Compact)
+		return pendingTool(sty, i18n.T("chat.call_hierarchy"), opts.Anim, opts.Compact)
 	}
 
 	var params tools.CallHierarchyParams
 	_ = json.Unmarshal([]byte(opts.ToolCall.Input), &params)
 
-	direction := "incoming"
+	direction := i18n.T("chat.incoming")
 	if params.Direction == "outgoing" {
-		direction = "outgoing"
+		direction = i18n.T("chat.outgoing")
 	}
-	header := toolHeader(sty, opts.Status, "Call Hierarchy", cappedWidth, opts, params.Symbol, direction)
+	header := toolHeader(sty, opts.Status, i18n.T("chat.call_hierarchy"), cappedWidth, opts, params.Symbol, direction)
 	if opts.Compact {
 		return header
 	}

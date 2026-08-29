@@ -8,6 +8,7 @@ import (
 	"charm.land/lipgloss/v2"
 	"charm.land/lipgloss/v2/tree"
 	"github.com/charmbracelet/crush/internal/agent"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/message"
 	"github.com/charmbracelet/crush/internal/ui/anim"
 	"github.com/charmbracelet/crush/internal/ui/styles"
@@ -127,7 +128,7 @@ type AgentToolRenderContext struct {
 func (r *AgentToolRenderContext) RenderTool(sty *styles.Styles, width int, opts *ToolRenderOpts) string {
 	cappedWidth := cappedMessageWidth(width)
 	if !opts.ToolCall.Finished && !opts.IsCanceled() && len(r.agent.nestedTools) == 0 {
-		return pendingTool(sty, "Agent", opts.Anim, opts.Compact)
+		return pendingTool(sty, i18n.T("chat.agent"), opts.Anim, opts.Compact)
 	}
 
 	var params agent.AgentParams
@@ -138,13 +139,13 @@ func (r *AgentToolRenderContext) RenderTool(sty *styles.Styles, width int, opts 
 		prompt = strings.ReplaceAll(prompt, "\n", " ")
 	}
 
-	header := toolHeader(sty, opts.Status, "Agent", cappedWidth, opts)
+	header := toolHeader(sty, opts.Status, i18n.T("chat.agent"), cappedWidth, opts)
 	if opts.Compact {
 		return header
 	}
 
 	// Build the task tag and prompt.
-	taskTag := sty.Tool.AgentTaskTag.Render("Task")
+	taskTag := sty.Tool.AgentTaskTag.Render(i18n.T("chat.task"))
 	taskTagWidth := lipgloss.Width(taskTag)
 
 	// Calculate remaining width for prompt.
@@ -290,7 +291,7 @@ type agenticFetchParams struct {
 func (r *AgenticFetchToolRenderContext) RenderTool(sty *styles.Styles, width int, opts *ToolRenderOpts) string {
 	cappedWidth := cappedMessageWidth(width)
 	if !opts.ToolCall.Finished && !opts.IsCanceled() && len(r.fetch.nestedTools) == 0 {
-		return pendingTool(sty, "Agentic Fetch", opts.Anim, opts.Compact)
+		return pendingTool(sty, i18n.T("chat.agentic_fetch"), opts.Anim, opts.Compact)
 	}
 
 	var params agenticFetchParams
@@ -307,13 +308,13 @@ func (r *AgenticFetchToolRenderContext) RenderTool(sty *styles.Styles, width int
 		toolParams = append(toolParams, params.URL)
 	}
 
-	header := toolHeader(sty, opts.Status, "Agentic Fetch", cappedWidth, opts, toolParams...)
+	header := toolHeader(sty, opts.Status, i18n.T("chat.agentic_fetch"), cappedWidth, opts, toolParams...)
 	if opts.Compact {
 		return header
 	}
 
 	// Build the prompt tag.
-	promptTag := sty.Tool.AgenticFetchPromptTag.Render("Prompt")
+	promptTag := sty.Tool.AgenticFetchPromptTag.Render(i18n.T("chat.prompt"))
 	promptTagWidth := lipgloss.Width(promptTag)
 
 	// Calculate remaining width for prompt text.

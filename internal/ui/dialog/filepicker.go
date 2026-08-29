@@ -15,6 +15,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/crush/internal/home"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/ui/common"
 	fimage "github.com/charmbracelet/crush/internal/ui/image"
 	uv "github.com/charmbracelet/ultraviolet"
@@ -69,31 +70,31 @@ func NewFilePicker(com *common.Common) (*FilePicker, tea.Cmd) {
 
 	f.km.Select = key.NewBinding(
 		key.WithKeys("enter"),
-		key.WithHelp("enter", "accept"),
+		key.WithHelp("enter", i18n.T("key.accept")),
 	)
 	f.km.Down = key.NewBinding(
 		key.WithKeys("down", "j"),
-		key.WithHelp("down/j", "move down"),
+		key.WithHelp("down/j", i18n.T("key.move_down")),
 	)
 	f.km.Up = key.NewBinding(
 		key.WithKeys("up", "k"),
-		key.WithHelp("up/k", "move up"),
+		key.WithHelp("up/k", i18n.T("key.move_up")),
 	)
 	f.km.Forward = key.NewBinding(
 		key.WithKeys("right", "l"),
-		key.WithHelp("right/l", "move forward"),
+		key.WithHelp("right/l", i18n.T("key.move_forward")),
 	)
 	f.km.Backward = key.NewBinding(
 		key.WithKeys("left", "h"),
-		key.WithHelp("left/h", "move backward"),
+		key.WithHelp("left/h", i18n.T("key.move_backward")),
 	)
 	f.km.Navigate = key.NewBinding(
 		key.WithKeys("right", "l", "left", "h", "up", "k", "down", "j"),
-		key.WithHelp("↑↓←→", "navigate"),
+		key.WithHelp("↑↓←→", i18n.T("key.navigate")),
 	)
 	f.km.Close = key.NewBinding(
 		key.WithKeys("esc", "alt+esc"),
-		key.WithHelp("esc", "close/exit"),
+		key.WithHelp("esc", i18n.T("key.close_exit")),
 	)
 
 	fp := filepicker.New()
@@ -246,7 +247,7 @@ func (f *FilePicker) Draw(scr uv.Screen, area uv.Rectangle) *tea.Cursor {
 
 	rc := NewRenderContext(t, width)
 	rc.Gap = 1
-	rc.Title = "Add Image"
+	rc.Title = i18n.T("filepicker.title")
 	rc.Help = renderDialogHelp(t, &f.help, f, innerWidth)
 
 	if imgPrevHeight > 0 {

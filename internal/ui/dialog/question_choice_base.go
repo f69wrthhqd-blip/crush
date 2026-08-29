@@ -9,6 +9,7 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/question"
 	"github.com/charmbracelet/crush/internal/ui/common"
 	"github.com/charmbracelet/crush/internal/ui/styles"
@@ -88,8 +89,8 @@ func newChoiceList(sty *styles.Styles, req question.Question) choiceList {
 		hoverY:         -1,
 		fillInTop:      -1,
 		fillInBottom:   -1,
-		keyUp:          key.NewBinding(key.WithKeys("up", "k"), key.WithHelp("↑", "up")),
-		keyDown:        key.NewBinding(key.WithKeys("down", "j"), key.WithHelp("↓", "down")),
+		keyUp:          key.NewBinding(key.WithKeys("up", "k"), key.WithHelp("↑", i18n.T("key.up"))),
+		keyDown:        key.NewBinding(key.WithKeys("down", "j"), key.WithHelp("↓", i18n.T("key.down"))),
 		keyClose:       CloseKey,
 	}
 }

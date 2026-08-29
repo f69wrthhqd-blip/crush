@@ -1,6 +1,7 @@
 package dialog
 
 import (
+	"fmt"
 	"strings"
 
 	"charm.land/bubbles/v2/help"
@@ -8,6 +9,7 @@ import (
 	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/ui/common"
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
@@ -75,7 +77,7 @@ func NewAWSSSO(com *common.Common, command string) (*AWSSSO, tea.Cmd) {
 
 	m.keyMap.Open = key.NewBinding(
 		key.WithKeys("enter", "ctrl+y"),
-		key.WithHelp("enter", "open in browser"),
+		key.WithHelp("enter", i18n.T("key.open_in_browser")),
 	)
 	m.keyMap.Close = CloseKey
 
@@ -195,9 +197,9 @@ func (m *AWSSSO) innerDialogContent() string {
 			// text segment with its own style: wrapping the whole string in
 			// one style would drop the text color after enterKeyStyle's
 			// reset code.
-			instructionText := instructionStyle.Render("Press ") +
-				enterKeyStyle.Render("enter") +
-				instructionStyle.Render(" to open the authorization page.")
+			instructionText := instructionStyle.Render(i18n.T("aws_sso.press")) +
+				enterKeyStyle.Render(i18n.T("oauth.enter")) +
+				instructionStyle.Render(i18n.T("aws_sso.to_open_page"))
 			instructions := lipgloss.NewStyle().
 				Width(innerWidth).
 				Padding(0, 1).
@@ -216,7 +218,7 @@ func (m *AWSSSO) innerDialogContent() string {
 				Padding(0, 1).
 				Render(
 					successStyle.Render(m.spinner.View()) +
-						statusTextStyle.Render("Waiting for authentication..."),
+						statusTextStyle.Render(i18n.T("aws_sso.waiting")),
 				)
 
 			return lipgloss.JoinVertical(
@@ -237,7 +239,7 @@ func (m *AWSSSO) innerDialogContent() string {
 			Padding(0, 1).
 			Render(
 				successStyle.Render(m.spinner.View()) +
-					statusTextStyle.Render("Starting "+m.command+"..."),
+					statusTextStyle.Render(fmt.Sprintf(i18n.T("aws_sso.starting"), m.command)),
 			)
 		return lipgloss.JoinVertical(lipgloss.Left, "", spinnerLine, "")
 
@@ -245,13 +247,13 @@ func (m *AWSSSO) innerDialogContent() string {
 		return successStyle.
 			Width(innerWidth).
 			Align(lipgloss.Center).
-			Render("✓ Authentication successful!")
+			Render(i18n.T("aws_sso.success"))
 
 	case awsSSOStateError:
 		header := errorStyle.
 			Width(innerWidth).
 			Padding(0, 1).
-			Render("Authentication failed.")
+			Render(i18n.T("aws_sso.failed"))
 
 		if m.errMsg == "" {
 			return header
@@ -284,7 +286,7 @@ func (m *AWSSSO) ShortHelp() []key.Binding {
 		return []key.Binding{
 			key.NewBinding(
 				key.WithKeys("enter", "ctrl+y", "esc"),
-				key.WithHelp("enter", "close"),
+				key.WithHelp("enter", i18n.T("key.close")),
 			),
 		}
 	default:

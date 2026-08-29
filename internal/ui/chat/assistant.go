@@ -9,6 +9,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/message"
 	"github.com/charmbracelet/crush/internal/ui/anim"
 	"github.com/charmbracelet/crush/internal/ui/common"
@@ -413,7 +414,7 @@ func (a *AssistantMessageItem) renderMessageContent(width int) (string, int) {
 	if a.message.IsFinished() {
 		switch {
 		case a.message.FinishReason() == message.FinishReasonCanceled:
-			messageParts = append(messageParts, a.sty.Messages.AssistantCanceled.Render("Canceled"))
+			messageParts = append(messageParts, a.sty.Messages.AssistantCanceled.Render(i18n.T("chat.cancelled_short")))
 		case a.message.IsErrorLike():
 			messageParts = append(messageParts, a.cachedError(width))
 		}
@@ -572,7 +573,7 @@ func (a *AssistantMessageItem) renderThinking(thinking string, width int) string
 		if totalLines > maxCollapsedThinkingHeight {
 			tail, hidden := tailLines(rendered, maxCollapsedThinkingHeight, totalLines)
 			hint := a.sty.Messages.ThinkingTruncationHint.Render(
-				fmt.Sprintf(assistantMessageTruncateFormat, hidden),
+				fmt.Sprintf(i18n.T("chat.lines_hidden"), hidden),
 			)
 			lines = append([]string{hint, ""}, strings.Split(tail, "\n")...)
 		} else {
@@ -583,7 +584,7 @@ func (a *AssistantMessageItem) renderThinking(thinking string, width int) string
 		if totalLines > maxExpandedThinkingTailLines {
 			tail, hidden := tailLines(rendered, maxExpandedThinkingTailLines, totalLines)
 			hint := a.sty.Messages.ThinkingTruncationHint.Render(
-				fmt.Sprintf(assistantMessageTailWindowFormat, hidden),
+				fmt.Sprintf(i18n.T("chat.earlier_lines_hidden"), hidden),
 			)
 			lines = append([]string{hint, ""}, strings.Split(tail, "\n")...)
 		} else {
@@ -602,7 +603,7 @@ func (a *AssistantMessageItem) renderThinking(thinking string, width int) string
 	if !a.message.IsThinking() || len(a.message.ToolCalls()) > 0 {
 		duration := a.message.ThinkingDuration()
 		if duration.String() != "0s" {
-			footer = a.sty.Messages.ThinkingFooterTitle.Render("Thought for ") +
+			footer = a.sty.Messages.ThinkingFooterTitle.Render(i18n.T("chat.thought_for")) +
 				a.sty.Messages.ThinkingFooterDuration.Render(duration.String())
 		}
 	}
@@ -630,9 +631,9 @@ func (a *AssistantMessageItem) renderMarkdown(content string, width int) string 
 
 func (a *AssistantMessageItem) renderSpinning() string {
 	if a.message.IsThinking() {
-		a.anim.SetLabel("Thinking")
+		a.anim.SetLabel(i18n.T("chat.thinking"))
 	} else if a.message.IsSummaryMessage {
-		a.anim.SetLabel("Summarizing")
+		a.anim.SetLabel(i18n.T("chat.summarizing"))
 	}
 	return a.anim.Render()
 }
@@ -644,9 +645,9 @@ func (a *AssistantMessageItem) renderError(width int) string {
 	titleText := finishPart.Message
 	detailsText := finishPart.Details
 	if finishPart.Reason == message.FinishReasonContentFilter {
-		tagLabel = refusalTagLabel
-		titleText = cmp.Or(titleText, refusalTitle)
-		detailsText = cmp.Or(detailsText, refusalDetails)
+		tagLabel = i18n.T("chat.refused")
+		titleText = cmp.Or(titleText, i18n.T("chat.refusal_title"))
+		detailsText = cmp.Or(detailsText, i18n.T("chat.refusal_details"))
 	}
 	errTag := a.sty.Messages.ErrorTag.Render(tagLabel)
 	truncated := ansi.Truncate(titleText, width-2-lipgloss.Width(errTag), "...")

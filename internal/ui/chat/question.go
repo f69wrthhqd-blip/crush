@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/crush/internal/agent/tools"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/message"
 	"github.com/charmbracelet/crush/internal/ui/styles"
 	"github.com/charmbracelet/x/ansi"
@@ -35,16 +36,16 @@ type QuestionToolRenderContext struct{}
 func (q *QuestionToolRenderContext) RenderTool(sty *styles.Styles, width int, opts *ToolRenderOpts) string {
 	cappedWidth := cappedMessageWidth(width)
 	if opts.IsPending() {
-		return pendingTool(sty, "Question", opts.Anim, opts.Compact)
+		return pendingTool(sty, i18n.T("chat.question"), opts.Anim, opts.Compact)
 	}
 
 	var params tools.QuestionParams
 	if err := json.Unmarshal([]byte(opts.ToolCall.Input), &params); err != nil {
-		return toolErrorContent(sty, &message.ToolResult{Content: "Invalid parameters"}, cappedWidth)
+		return toolErrorContent(sty, &message.ToolResult{Content: i18n.T("chat.invalid_parameters")}, cappedWidth)
 	}
 
 	headerText := questionSummary(params)
-	header := toolHeader(sty, opts.Status, "Question", cappedWidth, opts, headerText)
+	header := toolHeader(sty, opts.Status, i18n.T("chat.question"), cappedWidth, opts, headerText)
 	if opts.Compact {
 		return header
 	}
@@ -217,9 +218,9 @@ func styleAnswer(sty *styles.Styles, answer string) string {
 func styleAnswerLine(sty *styles.Styles, answer string) string {
 	switch {
 	case answer == "User answered: yes":
-		return sty.Tool.TodoCompletedIcon.Render("Yes")
+		return sty.Tool.TodoCompletedIcon.Render(i18n.T("chat.answer_yes"))
 	case answer == "User answered: no":
-		return sty.Tool.StateCancelled.Render("No")
+		return sty.Tool.StateCancelled.Render(i18n.T("chat.answer_no"))
 	case strings.HasPrefix(answer, "User selected:"):
 		selected := strings.TrimPrefix(answer, "User selected: ")
 		selected = strings.Trim(selected, "[]\"")
@@ -229,7 +230,7 @@ func styleAnswerLine(sty *styles.Styles, answer string) string {
 		text := strings.TrimPrefix(answer, "User provided: ")
 		return sty.Tool.ParamMain.Render(text)
 	case answer == "User skipped this question":
-		return sty.Tool.StateCancelled.Render("Skipped")
+		return sty.Tool.StateCancelled.Render(i18n.T("chat.answer_skipped"))
 	default:
 		return answer
 	}

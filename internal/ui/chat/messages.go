@@ -10,6 +10,7 @@ import (
 	"charm.land/catwalk/pkg/catwalk"
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/crush/internal/config"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/message"
 	"github.com/charmbracelet/crush/internal/ui/anim"
 	"github.com/charmbracelet/crush/internal/ui/attachments"
@@ -338,18 +339,18 @@ func (a *AssistantInfoItem) renderContent(width int) string {
 	}
 	finishTime := time.Unix(finishData.Time, 0)
 	duration := finishTime.Sub(a.lastUserMessageTime)
-	infoMsg := a.sty.Messages.AssistantInfoDuration.Render(fmt.Sprintf("in %s", duration))
+	infoMsg := a.sty.Messages.AssistantInfoDuration.Render(fmt.Sprintf(i18n.T("chat.in_duration"), duration))
 	icon := a.sty.Messages.AssistantInfoIcon.Render(styles.ModelIcon)
 	model := a.cfg.GetModel(a.message.Provider, a.message.Model)
 	if model == nil {
-		model = &catwalk.Model{Name: "Unknown Model"}
+		model = &catwalk.Model{Name: i18n.T("chat.unknown_model")}
 	}
 	modelFormatted := a.sty.Messages.AssistantInfoModel.Render(model.Name)
 	providerName := a.message.Provider
 	if providerConfig, ok := a.cfg.Providers.Get(a.message.Provider); ok {
 		providerName = providerConfig.Name
 	}
-	provider := a.sty.Messages.AssistantInfoProvider.Render(fmt.Sprintf("via %s", providerName))
+	provider := a.sty.Messages.AssistantInfoProvider.Render(fmt.Sprintf(i18n.T("chat.via"), providerName))
 	assistant := fmt.Sprintf("%s %s %s %s", icon, modelFormatted, provider, infoMsg)
 	return common.Section(a.sty, assistant, width)
 }

@@ -12,6 +12,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/catwalk/pkg/catwalk"
 	"github.com/charmbracelet/crush/internal/config"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/ui/common"
 	"github.com/charmbracelet/crush/internal/ui/styles"
 	"github.com/charmbracelet/crush/internal/ui/util"
@@ -74,7 +75,7 @@ func NewAPIKeyInput(
 
 	m.input = textinput.New()
 	m.input.SetVirtualCursor(false)
-	m.input.Placeholder = "Enter your API key..."
+	m.input.Placeholder = i18n.T("apikey.placeholder")
 	m.input.SetStyles(com.Styles.TextInput)
 	m.input.Focus()
 
@@ -88,7 +89,7 @@ func NewAPIKeyInput(
 
 	m.keyMap.Submit = key.NewBinding(
 		key.WithKeys("enter", "ctrl+y"),
-		key.WithHelp("enter", "submit"),
+		key.WithHelp("enter", i18n.T("key.submit")),
 	)
 	m.keyMap.Close = CloseKey
 
@@ -172,7 +173,7 @@ func (m *APIKeyInput) Draw(scr uv.Screen, area uv.Rectangle) *tea.Cursor {
 	content := strings.Join([]string{
 		m.headerView(),
 		inputStyle.Render(m.inputView()),
-		textStyle.Render("This will be written in your global configuration:"),
+		textStyle.Render(i18n.T("apikey.written_to")),
 		textStyle.Render(config.GlobalConfigData()),
 		"",
 		helpView,
@@ -214,13 +215,13 @@ func (m *APIKeyInput) dialogTitle() string {
 	)
 	switch m.state {
 	case APIKeyInputStateInitial:
-		return textStyle.Render("Enter your ") + accentStyle.Render(fmt.Sprintf("%s Key", m.provider.Name)) + textStyle.Render(".")
+		return textStyle.Render(i18n.T("apikey.enter")) + accentStyle.Render(fmt.Sprintf("%s%s", m.provider.Name, i18n.T("apikey.key_suffix"))) + textStyle.Render(".")
 	case APIKeyInputStateVerifying:
-		return textStyle.Render("Verifying your ") + accentStyle.Render(fmt.Sprintf("%s Key", m.provider.Name)) + textStyle.Render("...")
+		return textStyle.Render(i18n.T("apikey.verifying")) + accentStyle.Render(fmt.Sprintf("%s%s", m.provider.Name, i18n.T("apikey.key_suffix"))) + textStyle.Render("...")
 	case APIKeyInputStateVerified:
-		return accentStyle.Render(fmt.Sprintf("%s Key", m.provider.Name)) + textStyle.Render(" validated.")
+		return accentStyle.Render(fmt.Sprintf("%s%s", m.provider.Name, i18n.T("apikey.key_suffix"))) + textStyle.Render(i18n.T("apikey.validated"))
 	case APIKeyInputStateError:
-		return errorStyle.Render("Invalid ") + accentStyle.Render(fmt.Sprintf("%s Key", m.provider.Name)) + errorStyle.Render(". Try again?")
+		return errorStyle.Render(i18n.T("apikey.invalid")) + accentStyle.Render(fmt.Sprintf("%s%s", m.provider.Name, i18n.T("apikey.key_suffix"))) + errorStyle.Render(i18n.T("apikey.try_again"))
 	}
 	return ""
 }

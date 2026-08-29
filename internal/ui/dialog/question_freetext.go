@@ -8,6 +8,7 @@ import (
 	"charm.land/bubbles/v2/textarea"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/question"
 	"github.com/charmbracelet/crush/internal/ui/common"
 	"github.com/charmbracelet/crush/internal/ui/styles"
@@ -44,7 +45,7 @@ const (
 
 // NewFreeText creates a new free-text question component.
 func NewFreeText(sty *styles.Styles, req question.Question) *FreeText {
-	ta := newQuestionTextarea(sty, "Type your answer...", 1000)
+	ta := newQuestionTextarea(sty, i18n.T("question.type_your_answer"), 1000)
 	ta.DynamicHeight = false
 	ta.MinHeight = freeTextMinEditorHeight
 	ta.MaxHeight = freeTextMaxEditorHeight
@@ -54,8 +55,8 @@ func NewFreeText(sty *styles.Styles, req question.Question) *FreeText {
 		Styles:     sty,
 		Request:    req,
 		editor:     ta,
-		keyEnter:   key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "submit")),
-		keyNewline: key.NewBinding(key.WithKeys("shift+enter", "ctrl+j"), key.WithHelp("shift+enter", "newline")),
+		keyEnter:   key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", i18n.T("key.submit"))),
+		keyNewline: key.NewBinding(key.WithKeys("shift+enter", "ctrl+j"), key.WithHelp("shift+enter", i18n.T("key.newline"))),
 		keyClose:   CloseKey,
 	}
 }

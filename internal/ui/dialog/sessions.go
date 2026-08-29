@@ -11,6 +11,7 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/session"
 	"github.com/charmbracelet/crush/internal/ui/common"
 	"github.com/charmbracelet/crush/internal/ui/list"
@@ -92,49 +93,49 @@ func NewSessions(com *common.Common, selectedSessionID string) (*Session, error)
 
 	s.input = textinput.New()
 	s.input.SetVirtualCursor(false)
-	s.input.Placeholder = "Enter session name"
+	s.input.Placeholder = i18n.T("session.enter_name")
 	s.input.SetStyles(com.Styles.TextInput)
 	s.input.Focus()
 
 	s.keyMap.Select = key.NewBinding(
 		key.WithKeys("enter", "tab", "ctrl+y"),
-		key.WithHelp("enter", "choose"),
+		key.WithHelp("enter", i18n.T("key.choose")),
 	)
 	s.keyMap.Next = key.NewBinding(
 		key.WithKeys("down", "ctrl+n"),
-		key.WithHelp("↓", "next item"),
+		key.WithHelp("↓", i18n.T("key.next_item")),
 	)
 	s.keyMap.Previous = key.NewBinding(
 		key.WithKeys("up", "ctrl+p"),
-		key.WithHelp("↑", "previous item"),
+		key.WithHelp("↑", i18n.T("key.previous_item")),
 	)
 	s.keyMap.UpDown = key.NewBinding(
 		key.WithKeys("up", "down"),
-		key.WithHelp("↑↓", "choose"),
+		key.WithHelp("↑↓", i18n.T("key.choose")),
 	)
 	s.keyMap.Delete = key.NewBinding(
 		key.WithKeys("ctrl+x"),
-		key.WithHelp("ctrl+x", "delete"),
+		key.WithHelp("ctrl+x", i18n.T("key.delete")),
 	)
 	s.keyMap.Rename = key.NewBinding(
 		key.WithKeys("ctrl+r"),
-		key.WithHelp("ctrl+r", "rename"),
+		key.WithHelp("ctrl+r", i18n.T("key.rename")),
 	)
 	s.keyMap.ConfirmRename = key.NewBinding(
 		key.WithKeys("enter"),
-		key.WithHelp("enter", "confirm"),
+		key.WithHelp("enter", i18n.T("key.confirm")),
 	)
 	s.keyMap.CancelRename = key.NewBinding(
 		key.WithKeys("esc"),
-		key.WithHelp("esc", "cancel"),
+		key.WithHelp("esc", i18n.T("key.cancel")),
 	)
 	s.keyMap.ConfirmDelete = key.NewBinding(
 		key.WithKeys("y"),
-		key.WithHelp("y", "delete"),
+		key.WithHelp("y", i18n.T("key.delete")),
 	)
 	s.keyMap.CancelDelete = key.NewBinding(
 		key.WithKeys("n", "esc"),
-		key.WithHelp("n", "cancel"),
+		key.WithHelp("n", i18n.T("key.cancel")),
 	)
 	s.keyMap.Close = CloseKey
 
@@ -190,7 +191,7 @@ func (s *Session) HandleMsg(msg tea.Msg) Action {
 				s.list.SetItems(sessionItems(s.com.Styles, sessionsModeUpdating, s.sessions...)...)
 			case key.Matches(msg, s.keyMap.Delete):
 				if s.isCurrentSessionBusy() {
-					return ActionCmd{util.ReportWarn("Agent is busy, please wait...")}
+					return ActionCmd{util.ReportWarn(i18n.T("status.agent_busy"))}
 				}
 				s.sessionsMode = sessionsModeDeleting
 				s.list.SetItems(sessionItems(s.com.Styles, sessionsModeDeleting, s.sessions...)...)
@@ -301,20 +302,20 @@ func (s *Session) Draw(scr uv.Screen, area uv.Rectangle) *tea.Cursor {
 
 	var cur *tea.Cursor
 	rc := NewRenderContext(t, width)
-	rc.Title = "Sessions"
+	rc.Title = i18n.T("session.title")
 	switch s.sessionsMode {
 	case sessionsModeDeleting:
 		rc.TitleStyle = t.Dialog.Sessions.DeletingTitle
 		rc.TitleGradientFromColor = t.Dialog.Sessions.DeletingTitleGradientFromColor
 		rc.TitleGradientToColor = t.Dialog.Sessions.DeletingTitleGradientToColor
 		rc.ViewStyle = t.Dialog.Sessions.DeletingView
-		rc.AddPart(t.Dialog.Sessions.DeletingMessage.Render("Delete this session?"))
+		rc.AddPart(t.Dialog.Sessions.DeletingMessage.Render(i18n.T("session.delete_confirm")))
 	case sessionsModeUpdating:
 		rc.TitleStyle = t.Dialog.Sessions.RenamingingTitle
 		rc.TitleGradientFromColor = t.Dialog.Sessions.RenamingTitleGradientFromColor
 		rc.TitleGradientToColor = t.Dialog.Sessions.RenamingTitleGradientToColor
 		rc.ViewStyle = t.Dialog.Sessions.RenamingView
-		message := t.Dialog.Sessions.RenamingingMessage.Render("Rename this session?")
+		message := t.Dialog.Sessions.RenamingingMessage.Render(i18n.T("session.rename_confirm"))
 		rc.AddPart(message)
 		item := s.selectedSessionItem()
 		if item == nil {

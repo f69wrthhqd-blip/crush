@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/skills"
 	"github.com/charmbracelet/crush/internal/ui/common"
 	"github.com/charmbracelet/crush/internal/ui/styles"
@@ -38,14 +39,14 @@ func cachedBuiltinSkills() []*skills.Skill {
 func (m *UI) skillsInfo(width, maxItems int, isSection bool) string {
 	t := m.com.Styles
 
-	title := t.Resource.Heading.Render("Skills")
+	title := t.Resource.Heading.Render(i18n.T("sidebar.skills"))
 	if isSection {
 		title = common.Section(t, title, width)
 	}
 
 	items := m.skillStatusItems()
 	if len(items) == 0 {
-		list := t.Resource.AdditionalText.Render("None")
+		list := t.Resource.AdditionalText.Render(i18n.T("sidebar.none"))
 		return lipgloss.NewStyle().Width(width).Render(fmt.Sprintf("%s\n\n%s", title, list))
 	}
 
@@ -129,7 +130,7 @@ func skillsList(t *styles.Styles, items []skillStatusItem, width, maxItems int) 
 		remaining := len(items) - (maxItems - 1)
 		items = append(visibleItems, skillStatusItem{
 			name:  "more",
-			title: t.Resource.AdditionalText.Render(fmt.Sprintf("…and %d more", remaining)),
+			title: t.Resource.AdditionalText.Render(fmt.Sprintf(i18n.T("sidebar.more"), remaining)),
 		})
 	}
 

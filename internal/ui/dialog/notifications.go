@@ -5,6 +5,7 @@ import (
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/ui/common"
 	"github.com/charmbracelet/crush/internal/ui/list"
 	"github.com/charmbracelet/crush/internal/ui/notification"
@@ -87,25 +88,25 @@ func NewNotifications(com *common.Common) *Notifications {
 
 	n.input = textinput.New()
 	n.input.SetVirtualCursor(false)
-	n.input.Placeholder = "Type to filter"
+	n.input.Placeholder = i18n.T("commands.filter_placeholder")
 	n.input.SetStyles(com.Styles.TextInput)
 	n.input.Focus()
 
 	n.keyMap.Select = key.NewBinding(
 		key.WithKeys("enter", "ctrl+y"),
-		key.WithHelp("enter", "confirm"),
+		key.WithHelp("enter", i18n.T("key.confirm")),
 	)
 	n.keyMap.Next = key.NewBinding(
 		key.WithKeys("down", "ctrl+n"),
-		key.WithHelp("↓", "next item"),
+		key.WithHelp("↓", i18n.T("key.next_item")),
 	)
 	n.keyMap.Previous = key.NewBinding(
 		key.WithKeys("up", "ctrl+p"),
-		key.WithHelp("↑", "previous item"),
+		key.WithHelp("↑", i18n.T("key.previous_item")),
 	)
 	n.keyMap.UpDown = key.NewBinding(
 		key.WithKeys("up", "down"),
-		key.WithHelp("↑/↓", "choose"),
+		key.WithHelp("↑/↓", i18n.T("key.choose")),
 	)
 	n.keyMap.Close = CloseKey
 
@@ -190,7 +191,7 @@ func (n *Notifications) Draw(scr uv.Screen, area uv.Rectangle) *tea.Cursor {
 	n.list.SetSize(innerWidth, max(0, height-heightOffset))
 
 	rc := NewRenderContext(t, width)
-	rc.Title = "Notification Style"
+	rc.Title = i18n.T("notification.title")
 	inputView := t.Dialog.InputPrompt.Render(n.input.View())
 	rc.AddPart(inputView)
 
@@ -271,7 +272,12 @@ func (n *Notifications) setItems() {
 
 // Filter returns the filter value for the notification item.
 func (n *NotificationItem) Filter() string {
-	return n.style.Title
+	return n.Title()
+}
+
+// Title returns the localized title for the notification style.
+func (n *NotificationItem) Title() string {
+	return i18n.T("notification." + n.style.ID)
 }
 
 // ID returns the unique identifier for the notification style.
@@ -307,7 +313,7 @@ func (n *NotificationItem) SetMatch(m fuzzy.Match) {
 func (n *NotificationItem) Render(width int) string {
 	info := ""
 	if n.isCurrent {
-		info = "current"
+		info = i18n.T("lang.current")
 	}
 	st := ListItemStyles{
 		ItemBlurred:     n.t.Dialog.NormalItem,
@@ -315,5 +321,5 @@ func (n *NotificationItem) Render(width int) string {
 		InfoTextBlurred: n.t.Dialog.ListItem.InfoBlurred,
 		InfoTextFocused: n.t.Dialog.ListItem.InfoFocused,
 	}
-	return renderItem(st, n.style.Title, info, n.focused, width, n.cache, &n.m)
+	return renderItem(st, n.Title(), info, n.focused, width, n.cache, &n.m)
 }

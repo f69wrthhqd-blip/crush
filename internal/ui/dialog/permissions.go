@@ -12,6 +12,7 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/crush/internal/agent/tools"
 	"github.com/charmbracelet/crush/internal/fsext"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/permission"
 	"github.com/charmbracelet/crush/internal/stringext"
 	"github.com/charmbracelet/crush/internal/ui/common"
@@ -101,11 +102,11 @@ func defaultPermissionsKeyMap() permissionsKeyMap {
 	return permissionsKeyMap{
 		Left: key.NewBinding(
 			key.WithKeys("left", "h"),
-			key.WithHelp("←", "previous"),
+			key.WithHelp("←", i18n.T("key.previous_item")),
 		),
 		Right: key.NewBinding(
 			key.WithKeys("right", "l"),
-			key.WithHelp("→", "next"),
+			key.WithHelp("→", i18n.T("key.next_item")),
 		),
 		Tab: key.NewBinding(
 			key.WithKeys("tab"),
@@ -113,52 +114,52 @@ func defaultPermissionsKeyMap() permissionsKeyMap {
 		),
 		Select: key.NewBinding(
 			key.WithKeys("enter", "ctrl+y"),
-			key.WithHelp("enter", "confirm"),
+			key.WithHelp("enter", i18n.T("key.confirm")),
 		),
 		Allow: key.NewBinding(
 			key.WithKeys("a", "A", "ctrl+a"),
-			key.WithHelp("a", "allow"),
+			key.WithHelp("a", i18n.T("key.allow")),
 		),
 		AllowSession: key.NewBinding(
 			key.WithKeys("s", "S", "ctrl+s"),
-			key.WithHelp("s", "allow session"),
+			key.WithHelp("s", i18n.T("key.allow_session")),
 		),
 		Deny: key.NewBinding(
 			key.WithKeys("d", "D"),
-			key.WithHelp("d", "deny"),
+			key.WithHelp("d", i18n.T("key.deny")),
 		),
 		Close: CloseKey,
 		ToggleDiffMode: key.NewBinding(
 			key.WithKeys("t"),
-			key.WithHelp("t", "toggle diff view"),
+			key.WithHelp("t", i18n.T("key.toggle_diff_view")),
 		),
 		ToggleFullscreen: key.NewBinding(
 			key.WithKeys("f"),
-			key.WithHelp("f", "toggle fullscreen"),
+			key.WithHelp("f", i18n.T("key.toggle_fullscreen")),
 		),
 		ScrollUp: key.NewBinding(
 			key.WithKeys("shift+up", "K"),
-			key.WithHelp("shift+↑", "scroll up"),
+			key.WithHelp("shift+↑", i18n.T("key.scroll_up")),
 		),
 		ScrollDown: key.NewBinding(
 			key.WithKeys("shift+down", "J"),
-			key.WithHelp("shift+↓", "scroll down"),
+			key.WithHelp("shift+↓", i18n.T("key.scroll_down")),
 		),
 		ScrollLeft: key.NewBinding(
 			key.WithKeys("shift+left", "H"),
-			key.WithHelp("shift+←", "scroll left"),
+			key.WithHelp("shift+←", i18n.T("key.scroll_left_help")),
 		),
 		ScrollRight: key.NewBinding(
 			key.WithKeys("shift+right", "L"),
-			key.WithHelp("shift+→", "scroll right"),
+			key.WithHelp("shift+→", i18n.T("key.scroll_right_help")),
 		),
 		Choose: key.NewBinding(
 			key.WithKeys("left", "right"),
-			key.WithHelp("←/→", "choose"),
+			key.WithHelp("←/→", i18n.T("key.choose")),
 		),
 		Scroll: key.NewBinding(
 			key.WithKeys("shift+left", "shift+down", "shift+up", "shift+right"),
-			key.WithHelp("shift+←↓↑→", "scroll"),
+			key.WithHelp("shift+←↓↑→", i18n.T("key.scroll")),
 		),
 	}
 }
@@ -475,7 +476,7 @@ func (p *Permissions) renderHeader(contentWidth int) string {
 	case tools.DownloadToolName:
 		if params, ok := p.permission.Params.(tools.DownloadPermissionsParams); ok {
 			lines = append(lines, p.renderKeyValue("URL", params.URL, contentWidth))
-			lines = append(lines, p.renderKeyValue("File", fsext.PrettyPath(params.FilePath), contentWidth))
+			lines = append(lines, p.renderKeyValue(i18n.T("permission.file"), fsext.PrettyPath(params.FilePath), contentWidth))
 		}
 	case tools.EditToolName, tools.WriteToolName, tools.MultiEditToolName, tools.ViewToolName, tools.ReplaceSymbolToolName:
 		var filePath string
@@ -492,11 +493,11 @@ func (p *Permissions) renderHeader(contentWidth int) string {
 			filePath = params.FilePath
 		}
 		if filePath != "" {
-			lines = append(lines, p.renderKeyValue("File", fsext.PrettyPath(filePath), contentWidth))
+			lines = append(lines, p.renderKeyValue(i18n.T("permission.file"), fsext.PrettyPath(filePath), contentWidth))
 		}
 	case tools.LSToolName:
 		if params, ok := p.permission.Params.(tools.LSPermissionsParams); ok {
-			lines = append(lines, p.renderKeyValue("Directory", fsext.PrettyPath(params.Path), contentWidth))
+			lines = append(lines, p.renderKeyValue(i18n.T("permission.directory"), fsext.PrettyPath(params.Path), contentWidth))
 		}
 	}
 
@@ -527,7 +528,7 @@ func (p *Permissions) renderToolName(width int) string {
 		}
 	}
 
-	return p.renderKeyValue("Tool", toolName, width)
+	return p.renderKeyValue(i18n.T("permission.tool"), toolName, width)
 }
 
 // prettyName converts snake_case or kebab-case to Title Case.
@@ -762,9 +763,9 @@ func (p *Permissions) renderContentPanel(content string, width int) string {
 
 func (p *Permissions) renderButtons(contentWidth int, fullscreen bool) string {
 	buttons := []common.ButtonOpts{
-		{Text: "Allow", UnderlineIndex: 0, Selected: p.selectedOption == 0},
-		{Text: "Allow for Session", UnderlineIndex: 10, Selected: p.selectedOption == 1},
-		{Text: "Deny", UnderlineIndex: 0, Selected: p.selectedOption == 2},
+		{Text: i18n.T("permission.allow"), UnderlineIndex: 0, Selected: p.selectedOption == 0},
+		{Text: i18n.T("permission.allow_session"), UnderlineIndex: 10, Selected: p.selectedOption == 1},
+		{Text: i18n.T("permission.deny"), UnderlineIndex: 0, Selected: p.selectedOption == 2},
 	}
 
 	content := common.ButtonGroup(p.com.Styles, buttons, "  ")

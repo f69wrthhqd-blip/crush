@@ -8,6 +8,7 @@ import (
 	"charm.land/bubbles/v2/textarea"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/ui/styles"
 	uv "github.com/charmbracelet/ultraviolet"
 )
@@ -57,12 +58,12 @@ type questionEditor struct {
 func newQuestionEditor(sty *styles.Styles) questionEditor {
 	return questionEditor{
 		Styles:     sty,
-		fillIn:     newQuestionTextarea(sty, "Something else?", 500),
-		noteEditor: newQuestionTextarea(sty, "Add a note...", 300),
+		fillIn:     newQuestionTextarea(sty, i18n.T("question.something_else"), 500),
+		noteEditor: newQuestionTextarea(sty, i18n.T("question.add_a_note"), 300),
 		notes:      make(map[string]string),
-		keyNote:    key.NewBinding(key.WithKeys("alt+n"), key.WithHelp("alt+n", "note")),
-		navUp:      key.NewBinding(key.WithKeys("up"), key.WithHelp("↑", "up")),
-		navDown:    key.NewBinding(key.WithKeys("down"), key.WithHelp("↓", "down")),
+		keyNote:    key.NewBinding(key.WithKeys("alt+n"), key.WithHelp("alt+n", i18n.T("key.note"))),
+		navUp:      key.NewBinding(key.WithKeys("up"), key.WithHelp("↑", i18n.T("key.up"))),
+		navDown:    key.NewBinding(key.WithKeys("down"), key.WithHelp("↓", i18n.T("key.down"))),
 	}
 }
 
@@ -161,7 +162,7 @@ func (e *questionEditor) drawFillIn(lines *[]contentLine, innerWidth int, bar, b
 		*lines = append(*lines, contentLine{text: bar + fillPrefix + rendered, cursorItem: isActive, choiceIdx: -1})
 		return
 	}
-	*lines = append(*lines, contentLine{text: bar + fillPrefix + bodyStyle.Render("Something else?"), cursorItem: isActive, choiceIdx: -1})
+	*lines = append(*lines, contentLine{text: bar + fillPrefix + bodyStyle.Render(i18n.T("question.something_else")), cursorItem: isActive, choiceIdx: -1})
 }
 
 // drawNote appends note rows to lines for the given key. When the

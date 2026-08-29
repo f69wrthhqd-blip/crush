@@ -11,6 +11,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	mcptools "github.com/charmbracelet/crush/internal/agent/tools/mcp"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/ui/common"
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/pkg/browser"
@@ -137,10 +138,10 @@ func (m *MCPAuth) HandleMsg(msg tea.Msg) Action {
 			// prompt we fall back to the server URL. Starting the flow
 			// (and opening the browser) is enter's job, not c's.
 			if u := m.authURL(); u != "" {
-				return ActionCmd{common.CopyToClipboard(u, "URL copied to clipboard")}
+				return ActionCmd{common.CopyToClipboard(u, i18n.T("mcp_auth.url_copied"))}
 			}
 			if u := m.currentServer().URL; u != "" {
-				return ActionCmd{common.CopyToClipboard(u, "URL copied to clipboard")}
+				return ActionCmd{common.CopyToClipboard(u, i18n.T("mcp_auth.url_copied"))}
 			}
 		case key.Matches(msg, m.keyMap.Skip):
 			if m.state == MCPAuthStatePrompt {
@@ -291,9 +292,9 @@ func (m *MCPAuth) innerContent() string {
 
 	switch m.state {
 	case MCPAuthStatePrompt:
-		instructions := instructionStyle.Render("Press ") +
-			enterStyle.Render("enter") +
-			instructionStyle.Render(" to open your browser.") +
+		instructions := instructionStyle.Render(i18n.T("mcp_auth.press")) +
+			enterStyle.Render(i18n.T("oauth.enter")) +
+			instructionStyle.Render(i18n.T("mcp_auth.to_open_browser")) +
 			statusStyle.Render(progress)
 		return lipgloss.JoinVertical(
 			lipgloss.Left,
@@ -306,7 +307,7 @@ func (m *MCPAuth) innerContent() string {
 
 	case MCPAuthStateAuthenticating:
 		waiting := successStyle.Render(m.spinner.View()) +
-			statusStyle.Render(" Waiting for authorization...")
+			statusStyle.Render(i18n.T("mcp_auth.waiting"))
 		return lipgloss.JoinVertical(
 			lipgloss.Left,
 			"",
@@ -320,10 +321,10 @@ func (m *MCPAuth) innerContent() string {
 		return successStyle.
 			Width(innerWidth).
 			Padding(1).
-			Render("Authentication successful!")
+			Render(i18n.T("mcp_auth.success"))
 
 	case MCPAuthStateError:
-		errMsg := "Authentication failed."
+		errMsg := i18n.T("mcp_auth.failed")
 		if m.err != nil {
 			errMsg = m.err.Error()
 		}
@@ -354,9 +355,9 @@ func (m *MCPAuth) ShortHelp() []key.Binding {
 	case MCPAuthStateAuthenticating:
 		return []key.Binding{m.keyMap.Submit, m.keyMap.Copy, m.keyMap.Close}
 	case MCPAuthStateSuccess:
-		label := "finish"
+		label := i18n.T("key.finish")
 		if m.current+1 < len(m.pending) {
-			label = "next"
+			label = i18n.T("key.next")
 		}
 		return []key.Binding{
 			key.NewBinding(

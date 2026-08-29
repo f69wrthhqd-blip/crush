@@ -9,6 +9,7 @@ import (
 	"charm.land/lipgloss/v2"
 	"charm.land/lipgloss/v2/table"
 	"github.com/charmbracelet/crush/internal/config"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/message"
 	"github.com/charmbracelet/crush/internal/stringext"
 	"github.com/charmbracelet/crush/internal/ui/styles"
@@ -173,7 +174,7 @@ func (d *DockerMCPToolRenderContext) renderMCPServers(sty *styles.Styles, opts *
 	}
 
 	if len(result.Servers) == 0 {
-		return sty.Tool.ResultEmpty.Render("No MCP servers found.")
+		return sty.Tool.ResultEmpty.Render(i18n.T("chat.no_mcp_servers"))
 	}
 
 	bodyWidth := min(120, width) - toolBodyLeftPaddingTotal
@@ -181,7 +182,7 @@ func (d *DockerMCPToolRenderContext) renderMCPServers(sty *styles.Styles, opts *
 	moreServers := ""
 	for i, server := range result.Servers {
 		if i > 9 {
-			moreServers = sty.Tool.ResultTruncation.Render(fmt.Sprintf("... and %d more", len(result.Servers)-10))
+			moreServers = sty.Tool.ResultTruncation.Render(fmt.Sprintf(i18n.T("chat.and_more"), len(result.Servers)-10))
 			break
 		}
 		rows = append(rows, []string{sty.Tool.ResultItemName.Render(server.Name), sty.Tool.ResultItemDesc.Render(server.Description)})
@@ -224,24 +225,24 @@ func (d *DockerMCPToolRenderContext) makeHeader(sty *styles.Styles, tool string,
 }
 
 func (d *DockerMCPToolRenderContext) formatToolName(sty *styles.Styles, tool string) string {
-	mainTool := "Docker MCP"
+	mainTool := i18n.T("chat.docker_mcp")
 	action := tool
 	actionStyle := sty.Tool.MCPToolName
 	switch tool {
 	case "mcp-exec":
-		action = "Exec"
+		action = i18n.T("chat.exec")
 	case "mcp-config-set":
-		action = "Config Set"
+		action = i18n.T("chat.config_set")
 	case "mcp-find":
-		action = "Find"
+		action = i18n.T("chat.find")
 	case "mcp-add":
-		action = "Add"
+		action = i18n.T("chat.add")
 		actionStyle = sty.Tool.ActionCreate
 	case "mcp-remove":
-		action = "Remove"
+		action = i18n.T("chat.remove")
 		actionStyle = sty.Tool.ActionDestroy
 	case "code-mode":
-		action = "Code Mode"
+		action = i18n.T("chat.code_mode")
 	default:
 		action = strings.ReplaceAll(tool, "-", " ")
 		action = strings.ReplaceAll(action, "_", " ")
@@ -273,7 +274,7 @@ func (d *DockerMCPToolRenderContext) makeCompactHeader(sty *styles.Styles, tool 
 		action = strings.ReplaceAll(action, "_", " ")
 	}
 
-	name := fmt.Sprintf("Docker MCP: %s", action)
+	name := fmt.Sprintf(i18n.T("chat.docker_mcp_prefix"), action)
 	return toolHeader(sty, ToolStatusSuccess, name, width, &ToolRenderOpts{Compact: true}, params...)
 }
 

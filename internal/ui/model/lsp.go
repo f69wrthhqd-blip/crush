@@ -9,6 +9,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/lsp"
 	"github.com/charmbracelet/crush/internal/ui/common"
 	"github.com/charmbracelet/crush/internal/ui/styles"
@@ -120,11 +121,11 @@ func (m *UI) lspInfo(width, maxItems int, isSection bool) string {
 		}})
 	}
 
-	title := t.Resource.Heading.Render("LSPs")
+	title := t.Resource.Heading.Render(i18n.T("sidebar.lsps"))
 	if isSection {
 		title = common.Section(t, title, width)
 	}
-	list := t.Resource.AdditionalText.Render("None")
+	list := t.Resource.AdditionalText.Render(i18n.T("sidebar.none"))
 	if len(lsps) > 0 {
 		list = lspList(t, lsps, width, maxItems)
 	}
@@ -165,25 +166,25 @@ func lspList(t *styles.Styles, lsps []LSPInfo, width, maxItems int) string {
 		switch l.State {
 		case lsp.StateUnstarted:
 			icon = t.Resource.OfflineIcon.String()
-			description = t.Resource.StatusText.Render("unstarted")
+			description = t.Resource.StatusText.Render(i18n.T("sidebar.unstarted"))
 		case lsp.StateStopped:
 			icon = t.Resource.OfflineIcon.String()
-			description = t.Resource.StatusText.Render("stopped")
+			description = t.Resource.StatusText.Render(i18n.T("sidebar.stopped"))
 		case lsp.StateStarting:
 			icon = t.Resource.BusyIcon.String()
-			description = t.Resource.StatusText.Render("starting...")
+			description = t.Resource.StatusText.Render(i18n.T("sidebar.starting"))
 		case lsp.StateReady:
 			icon = t.Resource.OnlineIcon.String()
 			diagnostics = lspDiagnostics(t, l.Diagnostics)
 		case lsp.StateError:
 			icon = t.Resource.ErrorIcon.String()
-			description = t.Resource.StatusText.Render("error")
+			description = t.Resource.StatusText.Render(i18n.T("sidebar.error"))
 			if l.Error != nil {
-				description = t.Resource.StatusText.Render(fmt.Sprintf("error: %s", l.Error.Error()))
+				description = t.Resource.StatusText.Render(fmt.Sprintf(i18n.T("sidebar.error")+": %s", l.Error.Error()))
 			}
 		case lsp.StateDisabled:
 			icon = t.Resource.DisabledIcon.String()
-			description = t.Resource.StatusText.Render("disabled")
+			description = t.Resource.StatusText.Render(i18n.T("sidebar.disabled"))
 		default:
 			continue
 		}
@@ -198,7 +199,7 @@ func lspList(t *styles.Styles, lsps []LSPInfo, width, maxItems int) string {
 	if len(renderedLsps) > maxItems {
 		visibleItems := renderedLsps[:maxItems-1]
 		remaining := len(renderedLsps) - maxItems
-		visibleItems = append(visibleItems, t.Resource.AdditionalText.Render(fmt.Sprintf("…and %d more", remaining)))
+		visibleItems = append(visibleItems, t.Resource.AdditionalText.Render(fmt.Sprintf(i18n.T("sidebar.more"), remaining)))
 		return lipgloss.JoinVertical(lipgloss.Left, visibleItems...)
 	}
 	return lipgloss.JoinVertical(lipgloss.Left, renderedLsps...)

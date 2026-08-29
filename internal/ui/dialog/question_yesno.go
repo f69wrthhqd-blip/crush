@@ -8,6 +8,7 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/question"
 	"github.com/charmbracelet/crush/internal/ui/common"
 	"github.com/charmbracelet/crush/internal/ui/styles"
@@ -42,10 +43,10 @@ func NewYesNo(sty *styles.Styles, req question.Question) *YesNo {
 		questionEditor: newQuestionEditor(sty),
 		Request:        req,
 		selectedNo:     true, // Default to "No" for safety.
-		keyLeftRight:   key.NewBinding(key.WithKeys("left", "right", "h", "l"), key.WithHelp("←/→", "switch")),
-		keyEnter:       key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "confirm")),
-		keyYes:         key.NewBinding(key.WithKeys("y", "Y"), key.WithHelp("y", "yes")),
-		keyNo:          key.NewBinding(key.WithKeys("n", "N"), key.WithHelp("n", "no")),
+		keyLeftRight:   key.NewBinding(key.WithKeys("left", "right", "h", "l"), key.WithHelp("←/→", i18n.T("key.switch"))),
+		keyEnter:       key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", i18n.T("key.confirm"))),
+		keyYes:         key.NewBinding(key.WithKeys("y", "Y"), key.WithHelp("y", i18n.T("key.yes"))),
+		keyNo:          key.NewBinding(key.WithKeys("n", "N"), key.WithHelp("n", i18n.T("key.no"))),
 		keyClose:       CloseKey,
 	}
 }
@@ -188,8 +189,8 @@ func (d *YesNo) Draw(scr uv.Screen, area uv.Rectangle) *tea.Cursor {
 
 	// Draw buttons. Build compositor first so hover uses current geometry.
 	buttonOptsList := []common.ButtonOpts{
-		{Text: "Yes", Selected: !d.selectedNo, Padding: 3, UnderlineIndex: 0},
-		{Text: "No", Selected: d.selectedNo, Padding: 3, UnderlineIndex: 0},
+		{Text: i18n.T("key.yes"), Selected: !d.selectedNo, Padding: 3, UnderlineIndex: 0},
+		{Text: i18n.T("key.no"), Selected: d.selectedNo, Padding: 3, UnderlineIndex: 0},
 	}
 	d.compositor = common.ButtonHitCompositor(d.Styles, buttonOptsList, " ", area.Min.X, y)
 	hoveredBtn := common.HitButtonIndex(d.compositor, d.hoverX, d.hoverY)

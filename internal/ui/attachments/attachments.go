@@ -10,6 +10,7 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/message"
 	"github.com/charmbracelet/x/ansi"
 )
@@ -200,7 +201,7 @@ func (r *Renderer) Render(attachments []message.Attachment, deleting, showRemove
 		}
 
 		if i == fits && len(attachments) > i {
-			chips = append(chips, lipgloss.NewStyle().Width(maxItemWidth).Render(fmt.Sprintf("%d more…", len(attachments)-fits)))
+			chips = append(chips, lipgloss.NewStyle().Width(maxItemWidth).Render(fmt.Sprintf(i18n.T("chat.more_suffix"), len(attachments)-fits)))
 			break
 		}
 	}

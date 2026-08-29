@@ -39,6 +39,7 @@ import (
 	"github.com/charmbracelet/crush/internal/fsext"
 	"github.com/charmbracelet/crush/internal/history"
 	"github.com/charmbracelet/crush/internal/home"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/lsp"
 	"github.com/charmbracelet/crush/internal/message"
 	"github.com/charmbracelet/crush/internal/permission"
@@ -418,6 +419,15 @@ func New(com *common.Common, initialSessionID string, continueLast bool) *UI {
 
 	ch := NewChat(com, com.Config().Options.TUI.Scrollbar)
 
+	// Initialize the UI language from config before any keybindings or
+	// placeholder text is generated, so help labels render in the right
+	// language from the first frame.
+	if cfg := com.Config(); cfg != nil && cfg.Options != nil && cfg.Options.TUI.Locale != "" {
+		i18n.SetLocale(cfg.Options.TUI.Locale)
+	} else {
+		i18n.SetLocale("en")
+	}
+
 	keyMap := DefaultKeyMap()
 
 	// Completions component
@@ -493,6 +503,7 @@ func New(com *common.Common, initialSessionID string, continueLast bool) *UI {
 		ui.planModeCache.set(com.Workspace.AgentPlanMode())
 	}
 	ui.setEditorPrompt(yolo)
+
 	ui.randomizePlaceholders()
 	ui.textarea.Placeholder = ui.readyPlaceholder
 	ui.status = status
@@ -971,8 +982,8 @@ func (m *UI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, cmd)
 		}
 		if cmd := m.sendNotification(notification.Notification{
-			Title:   "Crush is waiting...",
-			Message: fmt.Sprintf("Permission required to execute \"%s\"", msg.Payload.ToolName),
+			Title:   i18n.T("status.crush_waiting"),
+			Message: fmt.Sprintf(i18n.T("permission.required_to_execute"), msg.Payload.ToolName),
 		}); cmd != nil {
 			cmds = append(cmds, cmd)
 		}
@@ -984,8 +995,8 @@ func (m *UI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, cmd)
 		}
 		if cmd := m.sendNotification(notification.Notification{
-			Title:   "Crush is waiting...",
-			Message: fmt.Sprintf("%d questions need your input", len(msg.Payload.Questions)),
+			Title:   i18n.T("status.crush_waiting"),
+			Message: fmt.Sprintf(i18n.T("status.questions_need_input"), len(msg.Payload.Questions)),
 		}); cmd != nil {
 			cmds = append(cmds, cmd)
 		}
@@ -1017,8 +1028,8 @@ func (m *UI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyboardEnhancementsMsg:
 		m.keyenh = msg
 		if msg.SupportsKeyDisambiguation() {
-			m.keyMap.Models.SetHelp("ctrl+m", "models")
-			m.keyMap.Editor.Newline.SetHelp("shift+enter", "newline")
+			m.keyMap.Models.SetHelp("ctrl+m", i18n.T("key.models"))
+			m.keyMap.Editor.Newline.SetHelp("shift+enter", i18n.T("key.newline"))
 		}
 	case copyChatHighlightMsg:
 		cmds = append(cmds, m.copyChatHighlight())
@@ -1374,9 +1385,9 @@ func (m *UI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		cmds = append(cmds, clearInfoMsgCmd(ttl))
 	case app.UpdateAvailableMsg:
-		text := fmt.Sprintf("Crush update available: v%s → v%s.", msg.CurrentVersion, msg.LatestVersion)
+		text := fmt.Sprintf(i18n.T("status.update_available"), msg.CurrentVersion, msg.LatestVersion)
 		if msg.IsDevelopment {
-			text = fmt.Sprintf("This is a development version of Crush. The latest version is v%s.", msg.LatestVersion)
+			text = fmt.Sprintf(i18n.T("status.development_version"), msg.LatestVersion)
 		}
 		ttl := 10 * time.Second
 		m.status.SetInfoMsg(util.InfoMsg{
@@ -1421,16 +1432,16 @@ func (m *UI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case uiFocusEditor:
 		// Textarea placeholder logic
 		if m.bangMode {
-			m.textarea.Placeholder = "Run a shell command"
+			m.textarea.Placeholder = i18n.T("editor.placeholder_run_shell")
 		} else if m.isAgentBusy() {
 			m.textarea.Placeholder = m.workingPlaceholder
 		} else {
 			m.textarea.Placeholder = m.readyPlaceholder
 		}
 		if !m.bangMode && m.planModeCached() {
-			m.textarea.Placeholder = "Plan mode: read-only investigation"
+			m.textarea.Placeholder = i18n.T("editor.placeholder_plan_mode")
 		} else if !m.bangMode && m.yoloModeCached() {
-			m.textarea.Placeholder = "Yolo mode!"
+			m.textarea.Placeholder = i18n.T("editor.placeholder_yolo")
 		}
 	}
 
@@ -1513,7 +1524,7 @@ func (m *UI) setSessionMessages(msgs []message.Message) tea.Cmd {
 func (m *UI) handleConnectionEvent(msg workspace.ConnectionEvent) []tea.Cmd {
 	info := util.InfoMsg{
 		Type: util.InfoTypeWarn,
-		Msg:  "Lost connection to the Crush server — reconnecting…",
+		Msg:  i18n.T("status.lost_connection"),
 		TTL:  30 * time.Second,
 	}
 	switch msg.State {
@@ -1521,13 +1532,13 @@ func (m *UI) handleConnectionEvent(msg workspace.ConnectionEvent) []tea.Cmd {
 		slog.Warn("Server connection degraded", "error", msg.Err, "stuck", msg.Stuck)
 		if msg.Stuck {
 			info.Type = util.InfoTypeError
-			info.Msg = "Can't restore the connection to the Crush server. Restart Crush to recover."
+			info.Msg = i18n.T("status.cant_restore")
 			info.TTL = time.Minute
 		}
 	case workspace.ConnectionRecovered:
 		info = util.InfoMsg{
 			Type: util.InfoTypeSuccess,
-			Msg:  "Reconnected to the Crush server.",
+			Msg:  i18n.T("status.reconnected"),
 			TTL:  DefaultStatusTTL,
 		}
 	}
@@ -1928,11 +1939,11 @@ func (m *UI) handleDialogMsg(msg tea.Msg) tea.Cmd {
 		m.dialog.CloseDialog(dialog.CommandsID)
 	case dialog.ActionTogglePlanMode:
 		planMode := m.togglePlanMode()
-		status := "build"
+		status := i18n.T("status.mode_build")
 		if planMode {
-			status = "plan"
+			status = i18n.T("status.mode_plan")
 		}
-		cmds = append(cmds, util.ReportInfo("Mode: "+status))
+		cmds = append(cmds, util.ReportInfo(fmt.Sprintf(i18n.T("status.mode"), status)))
 		m.dialog.CloseDialog(dialog.CommandsID)
 	case dialog.ActionSelectNotificationStyle:
 		cfg := m.com.Config()
@@ -1941,15 +1952,36 @@ func (m *UI) handleDialogMsg(msg tea.Msg) tea.Cmd {
 			if err := m.com.Workspace.SetConfigField(config.ScopeGlobal, "options.notifications", msg.Style); err != nil {
 				cmds = append(cmds, util.ReportError(err))
 			} else {
-				cmds = append(cmds, util.CmdHandler(util.NewInfoMsg("Notifications set to: "+msg.Style)))
+				cmds = append(cmds, util.CmdHandler(util.NewInfoMsg(fmt.Sprintf(i18n.T("notification.set_to"), msg.Style))))
 			}
 			// Reinitialize notification backend with new style.
 			m.notifyBackend = selectNotificationBackend(m.caps, cfg)
 		}
 		m.dialog.CloseDialog(dialog.NotificationsID)
+	case dialog.ActionSelectLanguage:
+		cfg := m.com.Config()
+		if cfg != nil && cfg.Options != nil {
+			i18n.SetLocale(msg.Code)
+			cfg.Options.TUI.Locale = msg.Code
+			if err := m.com.Workspace.SetConfigField(config.ScopeGlobal, "options.tui.locale", msg.Code); err != nil {
+				cmds = append(cmds, util.ReportError(err))
+			} else {
+				cmds = append(cmds, util.CmdHandler(util.NewInfoMsg(i18n.T("commands.language") + ": " + i18n.T("lang.name"))))
+			}
+			// Rebuild styles and re-render everything with the new locale.
+			m.refreshStyles()
+			// Rebuild keybindings so help labels reflect the new language.
+			// m.keyMap is a value field; status.helpKm holds the *UI
+			// pointer, whose ShortHelp/FullHelp read m.keyMap on every
+			// Draw, so the status bar refreshes automatically.
+			m.keyMap = DefaultKeyMap()
+		}
+		// Close the language dialog; any other open dialog rebuilds its
+		// labels the next time it is opened.
+		m.dialog.CloseDialog(dialog.LanguageID)
 	case dialog.ActionNewSession:
 		if m.isAgentBusy() {
-			cmds = append(cmds, util.ReportWarn("Agent is busy, please wait before starting a new session..."))
+			cmds = append(cmds, util.ReportWarn(i18n.T("status.agent_busy_new_session")))
 			break
 		}
 		if cmd := m.newSession(); cmd != nil {
@@ -1958,7 +1990,7 @@ func (m *UI) handleDialogMsg(msg tea.Msg) tea.Cmd {
 		m.dialog.CloseDialog(dialog.CommandsID)
 	case dialog.ActionSummarize:
 		if m.isAgentBusy() {
-			cmds = append(cmds, util.ReportWarn("Agent is busy, please wait before summarizing session..."))
+			cmds = append(cmds, util.ReportWarn(i18n.T("status.agent_busy_summarize")))
 			break
 		}
 		cmds = append(cmds, func() tea.Msg {
@@ -1974,7 +2006,7 @@ func (m *UI) handleDialogMsg(msg tea.Msg) tea.Cmd {
 		m.dialog.CloseDialog(dialog.CommandsID)
 	case dialog.ActionExternalEditor:
 		if m.isAgentBusy() {
-			cmds = append(cmds, util.ReportWarn("Agent is working, please wait..."))
+			cmds = append(cmds, util.ReportWarn(i18n.T("status.agent_working")))
 			break
 		}
 		editorValue := m.textarea.Value()
@@ -1995,12 +2027,12 @@ func (m *UI) handleDialogMsg(msg tea.Msg) tea.Cmd {
 		cmds = append(cmds, m.updateAgentModelCmd(func() tea.Msg {
 			cfg := m.com.Config()
 			if cfg == nil {
-				return util.ReportError(errors.New("configuration not found"))()
+				return util.ReportError(errors.New(i18n.T("status.configuration_not_found")))()
 			}
 
 			agentCfg, ok := cfg.Agents[config.AgentCoder]
 			if !ok {
-				return util.ReportError(errors.New("agent configuration not found"))()
+				return util.ReportError(errors.New(i18n.T("status.agent_configuration_not_found")))()
 			}
 
 			currentModel := cfg.Models[agentCfg.Model]
@@ -2009,18 +2041,18 @@ func (m *UI) handleDialogMsg(msg tea.Msg) tea.Cmd {
 				return util.ReportError(err)()
 			}
 			m.com.Workspace.UpdateAgentModel(context.TODO())
-			status := "disabled"
+			status := i18n.T("status.disabled")
 			if currentModel.Think {
-				status = "enabled"
+				status = i18n.T("status.enabled")
 			}
-			return util.NewInfoMsg("Thinking mode " + status)
+			return util.NewInfoMsg(fmt.Sprintf(i18n.T("status.thinking_mode"), status))
 		}))
 		m.dialog.CloseDialog(dialog.CommandsID)
 	case dialog.ActionToggleTransparentBackground:
 		cmds = append(cmds, func() tea.Msg {
 			cfg := m.com.Config()
 			if cfg == nil {
-				return util.ReportError(errors.New("configuration not found"))()
+				return util.ReportError(errors.New(i18n.T("status.configuration_not_found")))()
 			}
 
 			isTransparent := cfg.Options != nil && cfg.Options.TUI.IsTransparent()
@@ -2030,11 +2062,11 @@ func (m *UI) handleDialogMsg(msg tea.Msg) tea.Cmd {
 			}
 			m.isTransparent = newValue
 
-			status := "disabled"
+			status := i18n.T("status.disabled")
 			if newValue {
-				status = "enabled"
+				status = i18n.T("status.enabled")
 			}
-			return util.NewInfoMsg("Transparent background " + status)
+			return util.NewInfoMsg(fmt.Sprintf(i18n.T("status.transparent_background"), status))
 		})
 		m.dialog.CloseDialog(dialog.CommandsID)
 	case dialog.ActionQuit:
@@ -2047,7 +2079,7 @@ func (m *UI) handleDialogMsg(msg tea.Msg) tea.Cmd {
 		cmds = append(cmds, m.disableDockerMCP)
 	case dialog.ActionInitializeProject:
 		if m.isAgentBusy() {
-			cmds = append(cmds, util.ReportWarn("Agent is busy, please wait before summarizing session..."))
+			cmds = append(cmds, util.ReportWarn(i18n.T("status.agent_busy_summarize")))
 			break
 		}
 		cmds = append(cmds, m.initializeProject())
@@ -2059,19 +2091,19 @@ func (m *UI) handleDialogMsg(msg tea.Msg) tea.Cmd {
 		}
 	case dialog.ActionSelectReasoningEffort:
 		if m.isAgentBusy() {
-			cmds = append(cmds, util.ReportWarn("Agent is busy, please wait..."))
+			cmds = append(cmds, util.ReportWarn(i18n.T("status.agent_busy")))
 			break
 		}
 
 		cfg := m.com.Config()
 		if cfg == nil {
-			cmds = append(cmds, util.ReportError(errors.New("configuration not found")))
+			cmds = append(cmds, util.ReportError(errors.New(i18n.T("status.configuration_not_found"))))
 			break
 		}
 
 		agentCfg, ok := cfg.Agents[config.AgentCoder]
 		if !ok {
-			cmds = append(cmds, util.ReportError(errors.New("agent configuration not found")))
+			cmds = append(cmds, util.ReportError(errors.New(i18n.T("status.agent_configuration_not_found"))))
 			break
 		}
 
@@ -2084,7 +2116,7 @@ func (m *UI) handleDialogMsg(msg tea.Msg) tea.Cmd {
 
 		cmds = append(cmds, m.updateAgentModelCmd(func() tea.Msg {
 			m.com.Workspace.UpdateAgentModel(context.TODO())
-			return util.NewInfoMsg("Reasoning effort set to " + msg.Effort)
+			return util.NewInfoMsg(fmt.Sprintf(i18n.T("status.reasoning_effort"), msg.Effort))
 		}))
 		m.dialog.CloseDialog(dialog.ReasoningID)
 	case dialog.ActionPermissionResponse:
@@ -2116,7 +2148,7 @@ func (m *UI) handleDialogMsg(msg tea.Msg) tea.Cmd {
 			m.dialog.CloseFrontDialog()
 			argsDialog := dialog.NewArguments(
 				m.com,
-				"Custom Command Arguments",
+				i18n.T("custom_command.arguments"),
 				"",
 				msg.Arguments,
 				msg, // Pass the action as the result
@@ -2140,7 +2172,7 @@ func (m *UI) handleDialogMsg(msg tea.Msg) tea.Cmd {
 	case dialog.ActionRunMCPPrompt:
 		if len(msg.Arguments) > 0 && msg.Args == nil {
 			m.dialog.CloseFrontDialog()
-			title := cmp.Or(msg.Title, "MCP Prompt Arguments")
+			title := cmp.Or(msg.Title, i18n.T("mcp.prompt_arguments"))
 			argsDialog := dialog.NewArguments(
 				m.com,
 				title,
@@ -2299,12 +2331,12 @@ func (m *UI) handleSelectModel(msg dialog.ActionSelectModel) tea.Cmd {
 
 	// we ignore dialogs with the oauth id as they need to be able to be dismissed
 	if m.isAgentBusy() && !m.dialog.ContainsDialog(dialog.OAuthID) {
-		return util.ReportWarn("Agent is busy, please wait...")
+		return util.ReportWarn(i18n.T("status.agent_busy"))
 	}
 
 	cfg := m.com.Config()
 	if cfg == nil {
-		return util.ReportError(errors.New("configuration not found"))
+		return util.ReportError(errors.New(i18n.T("status.configuration_not_found")))
 	}
 
 	var (
@@ -2368,7 +2400,7 @@ func (m *UI) handleSelectModel(msg dialog.ActionSelectModel) tea.Cmd {
 		if catwalkModel := cfg.GetModel(msg.Model.Provider, msg.Model.Model); catwalkModel != nil && catwalkModel.Name != "" {
 			modelName = catwalkModel.Name
 		}
-		modelMsg := fmt.Sprintf("%s model changed to %s", modelType, modelName)
+		modelMsg := fmt.Sprintf(i18n.T("model.model_changed_to"), modelType, modelName)
 
 		return util.NewInfoMsg(modelMsg)
 	}))
@@ -2481,26 +2513,26 @@ func (m *UI) handleKeyPressMsg(msg tea.KeyPressMsg) tea.Cmd {
 			}
 		case key.Matches(msg, m.keyMap.Suspend):
 			if m.isAgentBusy() {
-				cmds = append(cmds, util.ReportWarn("Agent is busy, please wait..."))
+				cmds = append(cmds, util.ReportWarn(i18n.T("status.agent_busy")))
 				return true
 			}
 			cmds = append(cmds, tea.Suspend)
 			return true
 		case key.Matches(msg, m.keyMap.ToggleYolo):
 			yolo := m.toggleYoloMode()
-			status := "disabled"
+			status := i18n.T("status.disabled")
 			if yolo {
-				status = "enabled"
+				status = i18n.T("status.enabled")
 			}
-			cmds = append(cmds, util.ReportInfo("Yolo mode "+status))
+			cmds = append(cmds, util.ReportInfo(fmt.Sprintf(i18n.T("status.yolo_mode"), status)))
 			return true
 		case key.Matches(msg, m.keyMap.TogglePlan):
 			planMode := m.togglePlanMode()
-			status := "build"
+			status := i18n.T("status.mode_build")
 			if planMode {
-				status = "plan"
+				status = i18n.T("status.mode_plan")
 			}
-			cmds = append(cmds, util.ReportInfo("Mode: "+status))
+			cmds = append(cmds, util.ReportInfo(fmt.Sprintf(i18n.T("status.mode"), status)))
 			return true
 		}
 		return false
@@ -2662,7 +2694,7 @@ func (m *UI) handleKeyPressMsg(msg tea.KeyPressMsg) tea.Cmd {
 					break
 				}
 				if m.isAgentBusy() {
-					cmds = append(cmds, util.ReportWarn("Agent is busy, please wait before starting a new session..."))
+					cmds = append(cmds, util.ReportWarn(i18n.T("status.agent_busy_new_session")))
 					break
 				}
 				if cmd := m.newSession(); cmd != nil {
@@ -2677,7 +2709,7 @@ func (m *UI) handleKeyPressMsg(msg tea.KeyPressMsg) tea.Cmd {
 				}
 			case key.Matches(msg, m.keyMap.Editor.OpenEditor):
 				if m.isAgentBusy() {
-					cmds = append(cmds, util.ReportWarn("Agent is working, please wait..."))
+					cmds = append(cmds, util.ReportWarn(i18n.T("status.agent_working")))
 					break
 				}
 				editorValue := m.textarea.Value()
@@ -2694,7 +2726,7 @@ func (m *UI) handleKeyPressMsg(msg tea.KeyPressMsg) tea.Cmd {
 				if m.textarea.HasSelection() {
 					cmds = append(cmds, common.CopyToClipboardWithCallback(
 						m.textarea.SelectedText(),
-						"Selection copied to clipboard",
+						i18n.T("clipboard.selection_copied"),
 						nil,
 					))
 					m.textarea.ClearSelection()
@@ -2703,7 +2735,7 @@ func (m *UI) handleKeyPressMsg(msg tea.KeyPressMsg) tea.Cmd {
 				if m.textarea.HasSelection() {
 					cmds = append(cmds, common.CopyToClipboardWithCallback(
 						m.textarea.SelectedText(),
-						"Selection cut to clipboard",
+						i18n.T("clipboard.selection_cut"),
 						nil,
 					))
 					m.textarea.DeleteSelection()
@@ -2838,7 +2870,7 @@ func (m *UI) handleKeyPressMsg(msg tea.KeyPressMsg) tea.Cmd {
 					break
 				}
 				if m.isAgentBusy() {
-					cmds = append(cmds, util.ReportWarn("Agent is busy, please wait before starting a new session..."))
+					cmds = append(cmds, util.ReportWarn(i18n.T("status.agent_busy_new_session")))
 					break
 				}
 				m.focus = uiFocusEditor
@@ -3187,7 +3219,7 @@ func (m *UI) ShortHelp() []key.Binding {
 	tab := k.Tab
 	commands := k.Commands
 	if m.focus == uiFocusEditor && m.textarea.Value() == "" {
-		commands.SetHelp("/ or ctrl+p", "commands")
+		commands.SetHelp(i18n.T("key.commands_hint"), i18n.T("key.commands"))
 	}
 
 	switch m.state {
@@ -3198,18 +3230,18 @@ func (m *UI) ShortHelp() []key.Binding {
 		if m.isAgentBusy() {
 			cancelBinding := k.Chat.Cancel
 			if m.isCanceling {
-				cancelBinding.SetHelp("esc", "press again to cancel")
+				cancelBinding.SetHelp("esc", i18n.T("key.press_again_to_cancel"))
 			} else if m.promptQueue > 0 {
-				cancelBinding.SetHelp("esc", "clear queue")
+				cancelBinding.SetHelp("esc", i18n.T("key.clear_queue"))
 			}
 			binds = append(binds, cancelBinding)
 		}
 
 		switch m.focus {
 		case uiFocusEditor:
-			tab.SetHelp("tab", "focus chat")
+			tab.SetHelp("tab", i18n.T("key.focus_chat_help"))
 		default:
-			tab.SetHelp("tab", "focus editor")
+			tab.SetHelp("tab", i18n.T("key.focus_editor"))
 		}
 
 		binds = append(
@@ -3275,12 +3307,12 @@ func (m *UI) FullHelp() [][]key.Binding {
 	var binds [][]key.Binding
 	k := &m.keyMap
 	help := k.Help
-	help.SetHelp("ctrl+g", "less")
+	help.SetHelp("ctrl+g", i18n.T("key.less"))
 	hasAttachments := len(m.attachments.List()) > 0
 	hasSession := m.hasSession()
 	commands := k.Commands
 	if m.focus == uiFocusEditor && m.textarea.Value() == "" {
-		commands.SetHelp("/ or ctrl+p", "commands")
+		commands.SetHelp(i18n.T("key.commands_hint"), i18n.T("key.commands"))
 	}
 
 	switch m.state {
@@ -3294,9 +3326,9 @@ func (m *UI) FullHelp() [][]key.Binding {
 		if m.isAgentBusy() {
 			cancelBinding := k.Chat.Cancel
 			if m.isCanceling {
-				cancelBinding.SetHelp("esc", "press again to cancel")
+				cancelBinding.SetHelp("esc", i18n.T("key.press_again_to_cancel"))
 			} else if m.promptQueue > 0 {
-				cancelBinding.SetHelp("esc", "clear queue")
+				cancelBinding.SetHelp("esc", i18n.T("key.clear_queue"))
 			}
 			binds = append(binds, []key.Binding{cancelBinding})
 		}
@@ -3305,9 +3337,9 @@ func (m *UI) FullHelp() [][]key.Binding {
 		tab := k.Tab
 		switch m.focus {
 		case uiFocusEditor:
-			tab.SetHelp("tab", "focus chat")
+			tab.SetHelp("tab", i18n.T("key.focus_chat_help"))
 		default:
-			tab.SetHelp("tab", "focus editor")
+			tab.SetHelp("tab", i18n.T("key.focus_editor"))
 		}
 
 		mainBinds = append(
@@ -3860,7 +3892,7 @@ func (m *UI) openEditor(value string) tea.Cmd {
 			return util.ReportError(err)
 		}
 		if len(content) == 0 {
-			return util.ReportWarn("Message is empty")
+			return util.ReportWarn(i18n.T("status.message_empty"))
 		}
 		return openEditorMsg{
 			Text: strings.TrimSpace(string(content)),
@@ -4128,19 +4160,19 @@ func mimeOf(content []byte) string {
 }
 
 var readyPlaceholders = [...]string{
-	"Ready!",
-	"Ready...",
-	"Ready?",
-	"Ready for instructions",
+	i18n.T("editor.placeholder_ready1"),
+	i18n.T("editor.placeholder_ready2"),
+	i18n.T("editor.placeholder_ready3"),
+	i18n.T("editor.placeholder_ready"),
 }
 
 var workingPlaceholders = [...]string{
-	"Working!",
-	"Working...",
-	"Brrrrr...",
-	"Prrrrrrrr...",
-	"Processing...",
-	"Thinking...",
+	i18n.T("editor.placeholder_working1"),
+	i18n.T("editor.placeholder_working2"),
+	i18n.T("editor.placeholder_working3"),
+	i18n.T("editor.placeholder_working4"),
+	i18n.T("editor.placeholder_working5"),
+	i18n.T("editor.placeholder_working6"),
 }
 
 // randomizePlaceholders selects random placeholder text for the textarea's
@@ -4250,7 +4282,7 @@ func (m *UI) sendMessage(content string, attachments ...message.Attachment) tea.
 
 	var cmds []tea.Cmd
 	if !m.hasSession() {
-		newSession, err := m.com.Workspace.CreateSession(context.Background(), "New Session")
+		newSession, err := m.com.Workspace.CreateSession(context.Background(), i18n.T("commands.new_session"))
 		if err != nil {
 			return util.ReportError(err)
 		}
@@ -4313,7 +4345,7 @@ func (m *UI) runShellCommand(command string) tea.Cmd {
 func (m *UI) runShellCommandInternal(command string, isFirstMessage bool) tea.Cmd {
 	var cmds []tea.Cmd
 	if !m.hasSession() {
-		newSession, err := m.com.Workspace.CreateSession(context.Background(), "New Session")
+		newSession, err := m.com.Workspace.CreateSession(context.Background(), i18n.T("commands.new_session"))
 		if err != nil {
 			return util.ReportError(err)
 		}
@@ -4479,6 +4511,10 @@ func (m *UI) openDialog(id string) tea.Cmd {
 		if cmd := m.openNotificationsDialog(); cmd != nil {
 			cmds = append(cmds, cmd)
 		}
+	case dialog.LanguageID:
+		if cmd := m.openLanguageDialog(); cmd != nil {
+			cmds = append(cmds, cmd)
+		}
 	case dialog.FilePickerID:
 		if cmd := m.openFilesDialog(); cmd != nil {
 			cmds = append(cmds, cmd)
@@ -4577,6 +4613,18 @@ func (m *UI) openNotificationsDialog() tea.Cmd {
 
 	notificationsDialog := dialog.NewNotifications(m.com)
 	m.dialog.OpenDialog(notificationsDialog)
+	return nil
+}
+
+// openLanguageDialog opens the language picker dialog.
+func (m *UI) openLanguageDialog() tea.Cmd {
+	if m.dialog.ContainsDialog(dialog.LanguageID) {
+		m.dialog.BringToFront(dialog.LanguageID)
+		return nil
+	}
+
+	languageDialog := dialog.NewLanguage(m.com)
+	m.dialog.OpenDialog(languageDialog)
 	return nil
 }
 
@@ -4751,8 +4799,8 @@ func (m *UI) handleAgentNotification(n notify.Notification) tea.Cmd {
 	case notify.TypeAgentFinished:
 		common.StopTurn()
 		cmds = append(cmds, m.sendNotification(notification.Notification{
-			Title:   "Crush is waiting...",
-			Message: fmt.Sprintf("Agent's turn completed in \"%s\"", n.SessionTitle),
+			Title:   i18n.T("status.crush_waiting"),
+			Message: fmt.Sprintf(i18n.T("status.agent_turn_completed"), n.SessionTitle),
 		}))
 		if m.com.IsHyper() {
 			cmds = append(cmds, m.fetchHyperCredits())
@@ -4917,7 +4965,7 @@ func (m *UI) handlePasteMsg(msg tea.PasteMsg) tea.Cmd {
 		return func() tea.Msg {
 			content := []byte(msg.Content)
 			if int64(len(content)) > common.MaxAttachmentSize {
-				return util.ReportWarn("Paste is too big (>5mb)")
+				return util.ReportWarn(i18n.T("status.paste_too_big"))
 			}
 			name := fmt.Sprintf("paste_%d.txt", m.pasteIdx())
 			mimeBufferSize := min(512, len(content))
@@ -4996,10 +5044,10 @@ func (m *UI) handleFilePathPaste(path string) tea.Cmd {
 			return util.ReportError(err)
 		}
 		if fileInfo.IsDir() {
-			return util.ReportWarn("Cannot attach a directory")
+			return util.ReportWarn(i18n.T("status.cannot_attach_dir"))
 		}
 		if fileInfo.Size() > common.MaxAttachmentSize {
-			return util.ReportWarn("File is too big (>5mb)")
+			return util.ReportWarn(i18n.T("status.file_too_big"))
 		}
 
 		content, err := os.ReadFile(path)
@@ -5040,7 +5088,7 @@ func (m *UI) pasteImageFromClipboard() tea.Msg {
 	if int64(len(imageData)) > common.MaxAttachmentSize {
 		return util.InfoMsg{
 			Type: util.InfoTypeError,
-			Msg:  "File too large, max 5MB",
+			Msg:  i18n.T("status.file_too_large"),
 		}
 	}
 	name := fmt.Sprintf("paste_%d.png", m.pasteIdx())
@@ -5073,20 +5121,20 @@ func (m *UI) pasteImageFromClipboard() tea.Msg {
 		}
 	}
 	if !isAllowed {
-		return util.NewInfoMsg("File type is not a supported image format")
+		return util.NewInfoMsg(i18n.T("status.unsupported_image"))
 	}
 
 	fileInfo, statErr := os.Stat(path)
 	if statErr != nil {
 		return util.InfoMsg{
 			Type: util.InfoTypeError,
-			Msg:  fmt.Sprintf("Unable to read file: %v", statErr),
+			Msg:  fmt.Sprintf(i18n.T("status.unable_to_read"), statErr),
 		}
 	}
 	if fileInfo.Size() > common.MaxAttachmentSize {
 		return util.InfoMsg{
 			Type: util.InfoTypeError,
-			Msg:  "File too large, max 5MB",
+			Msg:  i18n.T("status.file_too_large"),
 		}
 	}
 
@@ -5235,7 +5283,7 @@ func (m *UI) copyChatHighlight() tea.Cmd {
 	text := m.chat.HighlightContent()
 	return common.CopyToClipboardWithCallback(
 		text,
-		"Selected text copied to clipboard",
+		i18n.T("clipboard.selected_text_copied"),
 		func() tea.Msg {
 			m.chat.ClearMouse()
 			return nil
@@ -5249,7 +5297,7 @@ func (m *UI) enableDockerMCP() tea.Msg {
 		return util.ReportError(err)()
 	}
 
-	return util.NewInfoMsg("Docker MCP enabled and started successfully")
+	return util.NewInfoMsg(i18n.T("status.docker_mcp_enabled"))
 }
 
 func (m *UI) disableDockerMCP() tea.Msg {
@@ -5257,7 +5305,7 @@ func (m *UI) disableDockerMCP() tea.Msg {
 		return util.ReportError(err)()
 	}
 
-	return util.NewInfoMsg("Docker MCP disabled successfully")
+	return util.NewInfoMsg(i18n.T("status.docker_mcp_disabled"))
 }
 
 // renderLogo renders the Crush logo with the given styles and dimensions.

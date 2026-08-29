@@ -98,6 +98,11 @@ type (
 	ActionEnableDockerMCP struct{}
 	// ActionDisableDockerMCP is a message to disable Docker MCP.
 	ActionDisableDockerMCP struct{}
+	// ActionSelectLanguage is a message indicating the UI language has
+	// been changed.
+	ActionSelectLanguage struct {
+		Code string
+	}
 )
 
 // Messages for MCP OAuth authentication dialog.

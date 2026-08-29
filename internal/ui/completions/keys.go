@@ -2,6 +2,7 @@ package completions
 
 import (
 	"charm.land/bubbles/v2/key"
+	"github.com/charmbracelet/crush/internal/i18n"
 )
 
 // KeyMap defines the key bindings for the completions component.
@@ -19,27 +20,27 @@ func DefaultKeyMap() KeyMap {
 	return KeyMap{
 		Down: key.NewBinding(
 			key.WithKeys("down"),
-			key.WithHelp("down", "move down"),
+			key.WithHelp("down", i18n.T("key.move_down")),
 		),
 		Up: key.NewBinding(
 			key.WithKeys("up"),
-			key.WithHelp("up", "move up"),
+			key.WithHelp("up", i18n.T("key.move_up")),
 		),
 		Select: key.NewBinding(
 			key.WithKeys("enter", "tab", "ctrl+y"),
-			key.WithHelp("enter", "select"),
+			key.WithHelp("enter", i18n.T("key.select")),
 		),
 		Cancel: key.NewBinding(
 			key.WithKeys("esc", "alt+esc"),
-			key.WithHelp("esc", "cancel"),
+			key.WithHelp("esc", i18n.T("key.cancel")),
 		),
 		DownInsert: key.NewBinding(
 			key.WithKeys("ctrl+n"),
-			key.WithHelp("ctrl+n", "insert next"),
+			key.WithHelp("ctrl+n", i18n.T("key.insert_next")),
 		),
 		UpInsert: key.NewBinding(
 			key.WithKeys("ctrl+p"),
-			key.WithHelp("ctrl+p", "insert previous"),
+			key.WithHelp("ctrl+p", i18n.T("key.insert_previous")),
 		),
 	}
 }

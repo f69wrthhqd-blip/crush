@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/crush/internal/agent/tools"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/message"
 	"github.com/charmbracelet/crush/internal/session"
 	"github.com/charmbracelet/crush/internal/ui/styles"
@@ -41,7 +42,7 @@ type TodosToolRenderContext struct{}
 func (t *TodosToolRenderContext) RenderTool(sty *styles.Styles, width int, opts *ToolRenderOpts) string {
 	cappedWidth := cappedMessageWidth(width)
 	if opts.IsPending() {
-		return pendingTool(sty, "To-Do", opts.Anim, opts.Compact)
+		return pendingTool(sty, i18n.T("chat.todo"), opts.Anim, opts.Compact)
 	}
 
 	var params tools.TodosParams
@@ -78,9 +79,9 @@ func (t *TodosToolRenderContext) RenderTool(sty *styles.Styles, width int, opts 
 			if err := json.Unmarshal([]byte(opts.Result.Metadata), &meta); err == nil {
 				if meta.IsNew {
 					if meta.JustStarted != "" {
-						headerText = fmt.Sprintf("created %d todos, starting first", meta.Total)
+						headerText = fmt.Sprintf(i18n.T("chat.created_todos_starting"), meta.Total)
 					} else {
-						headerText = fmt.Sprintf("created %d todos", meta.Total)
+						headerText = fmt.Sprintf(i18n.T("chat.created_todos"), meta.Total)
 					}
 					body = FormatTodosList(sty, meta.Todos, styles.ArrowRightIcon, cappedWidth)
 				} else {
@@ -91,16 +92,16 @@ func (t *TodosToolRenderContext) RenderTool(sty *styles.Styles, width int, opts 
 
 					ratio := sty.Tool.TodoRatio.Render(fmt.Sprintf("%d/%d", meta.Completed, meta.Total))
 					if hasCompleted && hasStarted {
-						text := sty.Tool.TodoStatusNote.Render(fmt.Sprintf(" · completed %d, starting next", len(meta.JustCompleted)))
+						text := sty.Tool.TodoStatusNote.Render(fmt.Sprintf(i18n.T("chat.completed_n_starting"), len(meta.JustCompleted)))
 						headerText = fmt.Sprintf("%s%s", ratio, text)
 					} else if hasCompleted {
-						text := sty.Tool.TodoStatusNote.Render(fmt.Sprintf(" · completed %d", len(meta.JustCompleted)))
+						text := sty.Tool.TodoStatusNote.Render(fmt.Sprintf(i18n.T("chat.completed_n"), len(meta.JustCompleted)))
 						if allCompleted {
-							text = sty.Tool.TodoStatusNote.Render(" · completed all")
+							text = sty.Tool.TodoStatusNote.Render(i18n.T("chat.completed_all"))
 						}
 						headerText = fmt.Sprintf("%s%s", ratio, text)
 					} else if hasStarted {
-						headerText = fmt.Sprintf("%s%s", ratio, sty.Tool.TodoStatusNote.Render(" · starting task"))
+						headerText = fmt.Sprintf("%s%s", ratio, sty.Tool.TodoStatusNote.Render(i18n.T("chat.starting_task")))
 					} else {
 						headerText = ratio
 					}
@@ -119,7 +120,7 @@ func (t *TodosToolRenderContext) RenderTool(sty *styles.Styles, width int, opts 
 	}
 
 	toolParams := []string{headerText}
-	header := toolHeader(sty, opts.Status, "To-Do", cappedWidth, opts, toolParams...)
+	header := toolHeader(sty, opts.Status, i18n.T("chat.todo"), cappedWidth, opts, toolParams...)
 	if opts.Compact {
 		return header
 	}

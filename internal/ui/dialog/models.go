@@ -12,6 +12,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/catwalk/pkg/catwalk"
 	"github.com/charmbracelet/crush/internal/config"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/ui/common"
 	"github.com/charmbracelet/crush/internal/ui/util"
 	uv "github.com/charmbracelet/ultraviolet"
@@ -29,9 +30,9 @@ const (
 func (mt ModelType) String() string {
 	switch mt {
 	case ModelTypeLarge:
-		return "Large Task"
+		return i18n.T("model.large_task")
 	case ModelTypeSmall:
-		return "Small Task"
+		return i18n.T("model.small_task")
 	default:
 		return "Unknown"
 	}
@@ -53,18 +54,18 @@ func (mt ModelType) Config() config.SelectedModelType {
 func (mt ModelType) Placeholder() string {
 	switch mt {
 	case ModelTypeLarge:
-		return largeModelInputPlaceholder
+		return i18n.T(largeModelInputPlaceholder)
 	case ModelTypeSmall:
-		return smallModelInputPlaceholder
+		return i18n.T(smallModelInputPlaceholder)
 	default:
 		return ""
 	}
 }
 
 const (
-	onboardingModelInputPlaceholder = "Find your fave"
-	largeModelInputPlaceholder      = "Choose a model for large, complex tasks"
-	smallModelInputPlaceholder      = "Choose a model for small, simple tasks"
+	onboardingModelInputPlaceholder = "onboarding.model.find_your_fave"
+	largeModelInputPlaceholder      = "onboarding.model.large_placeholder"
+	smallModelInputPlaceholder      = "onboarding.model.small_placeholder"
 )
 
 // ModelsID is the identifier for the model selection dialog.
@@ -113,33 +114,33 @@ func NewModels(com *common.Common, isOnboarding bool) (*Models, error) {
 
 	m.input = textinput.New()
 	m.input.SetVirtualCursor(false)
-	m.input.Placeholder = onboardingModelInputPlaceholder
+	m.input.Placeholder = i18n.T(onboardingModelInputPlaceholder)
 	m.input.SetStyles(com.Styles.TextInput)
 	m.input.Focus()
 
 	m.keyMap.Tab = key.NewBinding(
 		key.WithKeys("tab", "shift+tab"),
-		key.WithHelp("tab", "toggle type"),
+		key.WithHelp("tab", i18n.T("key.toggle_type")),
 	)
 	m.keyMap.Select = key.NewBinding(
 		key.WithKeys("enter", "ctrl+y"),
-		key.WithHelp("enter", "confirm"),
+		key.WithHelp("enter", i18n.T("key.confirm")),
 	)
 	m.keyMap.Edit = key.NewBinding(
 		key.WithKeys("ctrl+e"),
-		key.WithHelp("ctrl+e", "edit"),
+		key.WithHelp("ctrl+e", i18n.T("key.edit")),
 	)
 	m.keyMap.UpDown = key.NewBinding(
 		key.WithKeys("up", "down"),
-		key.WithHelp("↑/↓", "choose"),
+		key.WithHelp("↑/↓", i18n.T("key.choose")),
 	)
 	m.keyMap.Next = key.NewBinding(
 		key.WithKeys("down", "ctrl+n"),
-		key.WithHelp("↓", "next item"),
+		key.WithHelp("↓", i18n.T("key.next_item")),
 	)
 	m.keyMap.Previous = key.NewBinding(
 		key.WithKeys("up", "ctrl+p"),
-		key.WithHelp("↑", "previous item"),
+		key.WithHelp("↑", i18n.T("key.previous_item")),
 	)
 	m.keyMap.Close = CloseKey
 
@@ -273,11 +274,11 @@ func (m *Models) Draw(scr uv.Screen, area uv.Rectangle) *tea.Cursor {
 	listHeight, listTotalHeight, _ := sizeDialogList(t, m.list, innerWidth, height)
 
 	rc := NewRenderContext(t, width)
-	rc.Title = "Switch Model"
+	rc.Title = i18n.T("model.switch_title")
 	rc.TitleInfo = m.modelTypeRadioView()
 
 	if m.isOnboarding {
-		titleText := t.Dialog.PrimaryText.Render("To start, let's choose a provider and model.")
+		titleText := t.Dialog.PrimaryText.Render(i18n.T("model.onboarding_intro"))
 		rc.AddPart(titleText)
 	}
 
@@ -455,7 +456,7 @@ func (m *Models) setProviderItems() error {
 	}
 
 	if len(recentItems) > 0 {
-		recentGroup := NewModelGroup(t, "Recently used", false)
+		recentGroup := NewModelGroup(t, i18n.T("model.recently_used"), false)
 
 		var validRecentItems []config.SelectedModel
 		for _, recent := range recentItems {

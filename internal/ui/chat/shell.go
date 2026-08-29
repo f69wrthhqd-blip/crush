@@ -8,6 +8,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/ui/anim"
 	"github.com/charmbracelet/crush/internal/ui/common"
 	"github.com/charmbracelet/crush/internal/ui/list"
@@ -85,7 +86,7 @@ func NewPendingShellItem(sty *styles.Styles, command string) *ShellItem {
 	}
 	s.anim = anim.New(anim.Settings{
 		ID:         id,
-		Label:      "Running",
+		Label:      i18n.T("chat.running"),
 		LabelColor: sty.WorkingLabelColor,
 		GradColorA: sty.WorkingGradFromColor,
 		GradColorB: sty.WorkingGradToColor,
@@ -166,8 +167,8 @@ func (s *ShellItem) HandleMouseClick(btn ansi.MouseButton, x, y int) bool {
 func (s *ShellItem) HandleKeyEvent(key tea.KeyMsg) (bool, tea.Cmd) {
 	switch k := key.String(); k {
 	case "c", "y":
-		text := "$ " + s.command + "\n" + ansi.Strip(s.output.String())
-		return true, common.CopyToClipboard(text, "Shell output copied to clipboard")
+		text := i18n.T("chat.shell_dollar") + s.command + "\n" + ansi.Strip(s.output.String())
+		return true, common.CopyToClipboard(text, i18n.T("clipboard.shell_copied"))
 	case "shift+left", "H":
 		if s.xOffset > 0 {
 			s.xOffset = max(0, s.xOffset-shellHScrollStep)
@@ -220,7 +221,7 @@ func (s *ShellItem) RawRender(width int) string {
 			return header + "\n" + s.anim.Render()
 		}
 	} else if s.exitCode != 0 {
-		header += " " + s.sty.Messages.ShellExitCode.Render(fmt.Sprintf("(exit %d)", s.exitCode))
+		header += " " + s.sty.Messages.ShellExitCode.Render(fmt.Sprintf(i18n.T("chat.exit_code"), s.exitCode))
 	}
 
 	if s.output.Len() == 0 {
@@ -281,7 +282,7 @@ func (s *ShellItem) RawRender(width int) string {
 	// the "more lines" notice before the output.
 	if truncatedCount > 0 && s.pending {
 		body.WriteString(s.sty.Messages.ShellTruncation.Render(
-			fmt.Sprintf("… %d earlier lines", truncatedCount),
+			fmt.Sprintf(i18n.T("chat.earlier_lines"), truncatedCount),
 		))
 		body.WriteString("\n")
 	}
@@ -299,7 +300,7 @@ func (s *ShellItem) RawRender(width int) string {
 	// When finished, hidden lines are below, so show the notice after.
 	if truncatedCount > 0 && !s.pending && !s.expandedContent {
 		body.WriteString(s.sty.Messages.ShellTruncation.Render(
-			fmt.Sprintf("… %d more lines", truncatedCount),
+			fmt.Sprintf(i18n.T("chat.more_lines"), truncatedCount),
 		))
 		return header + "\n" + body.String()
 	}

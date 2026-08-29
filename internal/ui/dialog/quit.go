@@ -4,6 +4,7 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/ui/common"
 	uv "github.com/charmbracelet/ultraviolet"
 )
@@ -36,28 +37,28 @@ func NewQuit(com *common.Common) *Quit {
 	}
 	q.keyMap.LeftRight = key.NewBinding(
 		key.WithKeys("left", "right"),
-		key.WithHelp("←/→", "switch options"),
+		key.WithHelp("←/→", i18n.T("key.switch_options")),
 	)
 	q.keyMap.EnterSpace = key.NewBinding(
 		key.WithKeys("enter", " "),
-		key.WithHelp("enter/space", "confirm"),
+		key.WithHelp("enter/space", i18n.T("key.confirm")),
 	)
 	q.keyMap.Yes = key.NewBinding(
 		key.WithKeys("y", "Y", "ctrl+c"),
-		key.WithHelp("y/Y/ctrl+c", "yes"),
+		key.WithHelp("y/Y/ctrl+c", i18n.T("key.yes")),
 	)
 	q.keyMap.No = key.NewBinding(
 		key.WithKeys("n", "N"),
-		key.WithHelp("n/N", "no"),
+		key.WithHelp("n/N", i18n.T("key.no")),
 	)
 	q.keyMap.Tab = key.NewBinding(
 		key.WithKeys("tab"),
-		key.WithHelp("tab", "switch options"),
+		key.WithHelp("tab", i18n.T("key.switch_options")),
 	)
 	q.keyMap.Close = CloseKey
 	q.keyMap.Quit = key.NewBinding(
 		key.WithKeys("ctrl+c"),
-		key.WithHelp("ctrl+c", "quit"),
+		key.WithHelp("ctrl+c", i18n.T("key.quit")),
 	)
 	return q
 }
@@ -95,18 +96,18 @@ func (q *Quit) HandleMsg(msg tea.Msg) Action {
 
 // Draw implements [Dialog].
 func (q *Quit) Draw(scr uv.Screen, area uv.Rectangle) *tea.Cursor {
-	const (
-		question    = "Are you sure you want to quit?"
-		hintLineOne = "To quit without confirmation"
-		hintLineTwo = "press ctrl+c twice."
+	var (
+		question    = i18n.T("quit.question")
+		hintLineOne = i18n.T("quit.hint_one")
+		hintLineTwo = i18n.T("quit.hint_two")
 	)
 	var (
 		baseStyle = q.com.Styles.Dialog.Quit.Content
 		hintStyle = q.com.Styles.Dialog.Quit.Hint
 	)
 	buttonOpts := []common.ButtonOpts{
-		{Text: "Yep!", Selected: !q.selectedNo, Padding: 3},
-		{Text: "Nope", Selected: q.selectedNo, Padding: 3},
+		{Text: i18n.T("quit.yep"), Selected: !q.selectedNo, Padding: 3},
+		{Text: i18n.T("quit.nope"), Selected: q.selectedNo, Padding: 3},
 	}
 	buttons := common.ButtonGroup(q.com.Styles, buttonOpts, " ")
 	content := baseStyle.Render(

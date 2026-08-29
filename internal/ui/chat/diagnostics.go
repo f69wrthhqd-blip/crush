@@ -5,6 +5,7 @@ import (
 
 	"github.com/charmbracelet/crush/internal/agent/tools"
 	"github.com/charmbracelet/crush/internal/fsext"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/message"
 	"github.com/charmbracelet/crush/internal/ui/styles"
 )
@@ -37,19 +38,19 @@ type DiagnosticsToolRenderContext struct{}
 func (d *DiagnosticsToolRenderContext) RenderTool(sty *styles.Styles, width int, opts *ToolRenderOpts) string {
 	cappedWidth := cappedMessageWidth(width)
 	if opts.IsPending() {
-		return pendingTool(sty, "Diagnostics", opts.Anim, opts.Compact)
+		return pendingTool(sty, i18n.T("chat.diagnostics"), opts.Anim, opts.Compact)
 	}
 
 	var params tools.DiagnosticsParams
 	_ = json.Unmarshal([]byte(opts.ToolCall.Input), &params)
 
 	// Show "project" if no file path, otherwise show the file path.
-	mainParam := "project"
+	mainParam := i18n.T("chat.project")
 	if params.FilePath != "" {
 		mainParam = fsext.PrettyPath(params.FilePath)
 	}
 
-	header := toolHeader(sty, opts.Status, "Diagnostics", cappedWidth, opts, mainParam)
+	header := toolHeader(sty, opts.Status, i18n.T("chat.diagnostics"), cappedWidth, opts, mainParam)
 	if opts.Compact {
 		return header
 	}

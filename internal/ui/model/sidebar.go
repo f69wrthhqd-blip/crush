@@ -9,6 +9,7 @@ import (
 	"charm.land/lipgloss/v2"
 	mcp "github.com/charmbracelet/crush/internal/agent/tools/mcp"
 	"github.com/charmbracelet/crush/internal/config"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/ui/common"
 	"github.com/charmbracelet/crush/internal/ui/logo"
 	uv "github.com/charmbracelet/ultraviolet"
@@ -32,13 +33,13 @@ func (m *UI) modelInfo(width int) string {
 			if model.CatwalkCfg.CanReason {
 				if len(model.CatwalkCfg.ReasoningLevels) == 0 {
 					if model.ModelCfg.Think {
-						reasoningInfo = "Thinking On"
+						reasoningInfo = i18n.T("sidebar.thinking_on")
 					} else {
-						reasoningInfo = "Thinking Off"
+						reasoningInfo = i18n.T("sidebar.thinking_off")
 					}
 				} else {
 					reasoningEffort := cmp.Or(model.ModelCfg.ReasoningEffort, model.CatwalkCfg.DefaultReasoningEffort)
-					reasoningInfo = fmt.Sprintf("Reasoning %s", common.FormatReasoningEffort(reasoningEffort))
+					reasoningInfo = fmt.Sprintf(i18n.T("sidebar.reasoning"), common.FormatReasoningEffort(reasoningEffort))
 				}
 			}
 		}

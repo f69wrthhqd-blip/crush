@@ -13,6 +13,7 @@ import (
 	"github.com/charmbracelet/crush/internal/diff"
 	"github.com/charmbracelet/crush/internal/fsext"
 	"github.com/charmbracelet/crush/internal/history"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/session"
 	"github.com/charmbracelet/crush/internal/ui/common"
 	"github.com/charmbracelet/crush/internal/ui/styles"
@@ -183,11 +184,11 @@ func (m *UI) handleFileEvent(file history.File) tea.Cmd {
 func (m *UI) filesInfo(cwd string, width, maxItems int, isSection bool) string {
 	t := m.com.Styles
 
-	title := t.Files.SectionTitle.Render("Modified Files")
+	title := t.Files.SectionTitle.Render(i18n.T("sidebar.modified_files"))
 	if isSection {
-		title = common.Section(t, "Modified Files", width)
+		title = common.Section(t, i18n.T("sidebar.modified_files"), width)
 	}
-	list := t.Files.EmptyMessage.Render("None")
+	list := t.Files.EmptyMessage.Render(i18n.T("sidebar.none"))
 	var filesWithChanges []SessionFile
 	for _, f := range m.sessionFiles {
 		if f.Additions == 0 && f.Deletions == 0 {
@@ -251,7 +252,7 @@ func fileList(t *styles.Styles, cwd string, filesWithChanges []SessionFile, widt
 
 	if len(filesWithChanges) > maxItems {
 		remaining := len(filesWithChanges) - maxItems
-		renderedFiles = append(renderedFiles, t.Files.TruncationHint.Render(fmt.Sprintf("…and %d more", remaining)))
+		renderedFiles = append(renderedFiles, t.Files.TruncationHint.Render(fmt.Sprintf(i18n.T("sidebar.more"), remaining)))
 	}
 
 	return lipgloss.JoinVertical(lipgloss.Left, renderedFiles...)

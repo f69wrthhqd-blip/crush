@@ -8,6 +8,7 @@ import (
 
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/question"
 	"github.com/charmbracelet/crush/internal/ui/styles"
 	uv "github.com/charmbracelet/ultraviolet"
@@ -28,7 +29,7 @@ type SingleChoice struct {
 func NewSingleChoice(sty *styles.Styles, req question.Question) *SingleChoice {
 	return &SingleChoice{
 		choiceList: newChoiceList(sty, req),
-		keyEnter:   key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "select")),
+		keyEnter:   key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", i18n.T("key.select"))),
 	}
 }
 
@@ -145,7 +146,7 @@ func numKeyBinding(n int) key.Binding {
 // ShortHelp returns key bindings for the status bar.
 func (d *SingleChoice) ShortHelp() []key.Binding {
 	if d.activeNoteKey != "" && d.noteEditor.Focused() {
-		return []key.Binding{d.keyClose, key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "save note"))}
+		return []key.Binding{d.keyClose, key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", i18n.T("key.save_note")))}
 	}
 	if d.isFillIn() && d.fillIn.Focused() {
 		return []key.Binding{d.navUp, d.keyEnter, d.keyClose}

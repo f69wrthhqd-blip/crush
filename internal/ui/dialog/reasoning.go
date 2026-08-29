@@ -8,6 +8,7 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/crush/internal/config"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/ui/common"
 	"github.com/charmbracelet/crush/internal/ui/list"
 	"github.com/charmbracelet/crush/internal/ui/styles"
@@ -75,25 +76,25 @@ func NewReasoning(com *common.Common) (*Reasoning, error) {
 
 	r.input = textinput.New()
 	r.input.SetVirtualCursor(false)
-	r.input.Placeholder = "Type to filter"
+	r.input.Placeholder = i18n.T("commands.filter_placeholder")
 	r.input.SetStyles(com.Styles.TextInput)
 	r.input.Focus()
 
 	r.keyMap.Select = key.NewBinding(
 		key.WithKeys("enter", "ctrl+y"),
-		key.WithHelp("enter", "confirm"),
+		key.WithHelp("enter", i18n.T("key.confirm")),
 	)
 	r.keyMap.Next = key.NewBinding(
 		key.WithKeys("down", "ctrl+n"),
-		key.WithHelp("↓", "next item"),
+		key.WithHelp("↓", i18n.T("key.next_item")),
 	)
 	r.keyMap.Previous = key.NewBinding(
 		key.WithKeys("up", "ctrl+p"),
-		key.WithHelp("↑", "previous item"),
+		key.WithHelp("↑", i18n.T("key.previous_item")),
 	)
 	r.keyMap.UpDown = key.NewBinding(
 		key.WithKeys("up", "down"),
-		key.WithHelp("↑/↓", "choose"),
+		key.WithHelp("↑/↓", i18n.T("key.choose")),
 	)
 	r.keyMap.Close = CloseKey
 
@@ -186,7 +187,7 @@ func (r *Reasoning) Draw(scr uv.Screen, area uv.Rectangle) *tea.Cursor {
 	listHeight, listTotalHeight, _ := sizeDialogList(t, r.list, innerWidth, height)
 
 	rc := NewRenderContext(t, width)
-	rc.Title = "Select Reasoning Effort"
+	rc.Title = i18n.T("reasoning.title")
 	inputView := t.Dialog.InputPrompt.Render(r.input.View())
 	rc.AddPart(inputView)
 
@@ -238,17 +239,17 @@ func (r *Reasoning) setReasoningItems() error {
 	cfg := r.com.Config()
 	agentCfg, ok := cfg.Agents[config.AgentCoder]
 	if !ok {
-		return errors.New("agent configuration not found")
+		return errors.New(i18n.T("status.agent_configuration_not_found"))
 	}
 
 	selectedModel := cfg.Models[agentCfg.Model]
 	model := cfg.GetModelByType(agentCfg.Model)
 	if model == nil {
-		return errors.New("model configuration not found")
+		return errors.New(i18n.T("status.model_configuration_not_found"))
 	}
 
 	if len(model.ReasoningLevels) == 0 {
-		return errors.New("no reasoning levels available")
+		return errors.New(i18n.T("status.no_reasoning_levels"))
 	}
 
 	currentEffort := selectedModel.ReasoningEffort

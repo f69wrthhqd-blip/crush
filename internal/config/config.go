@@ -279,6 +279,7 @@ type TUIOptions struct {
 	Transparent *bool       `json:"transparent,omitempty" jsonschema:"description=Enable transparent background for the TUI interface,default=false"`
 	Scrollbar   string      `json:"scrollbar,omitempty" jsonschema:"description=Chat scrollbar visibility,enum=default,enum=always,enum=never,default=default"`
 	ExitBanner  ExitBanner  `json:"exit_banner,omitempty" jsonschema:"description=Exit banner style after quitting Crush,enum=default,enum=compact,enum=none,default=default"`
+	Locale      string      `json:"locale,omitempty" jsonschema:"description=UI display language,enum=en,enum=zh-CN,default=en"`
 }
 
 // IsTransparent reports whether the TUI draws a transparent background. The

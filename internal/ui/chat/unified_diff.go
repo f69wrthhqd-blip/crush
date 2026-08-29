@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/crush/internal/diffdetect"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/ui/common"
 	"github.com/charmbracelet/crush/internal/ui/styles"
 )
@@ -164,7 +165,7 @@ func toolOutputDiffContentFromUnified(sty *styles.Styles, content string, width 
 	if len(lines) > maxLines && !expanded {
 		truncMsg := sty.Tool.DiffTruncation.
 			Width(bodyWidth).
-			Render(fmt.Sprintf(assistantMessageTruncateFormat, len(lines)-maxLines))
+			Render(fmt.Sprintf(i18n.T("chat.lines_hidden"), len(lines)-maxLines))
 		combined = strings.Join(lines[:maxLines], "\n") + "\n" + truncMsg
 	}
 	return sty.Tool.Body.Render(combined)

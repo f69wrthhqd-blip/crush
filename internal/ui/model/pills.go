@@ -6,6 +6,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/session"
 	"github.com/charmbracelet/crush/internal/ui/chat"
 	"github.com/charmbracelet/crush/internal/ui/styles"
@@ -56,7 +57,7 @@ func queuePill(queue int, t *styles.Styles) string {
 		triangles = triangles[:queue]
 	}
 
-	text := t.Pills.QueueLabel.Render(fmt.Sprintf("%d Queued", queue))
+	text := t.Pills.QueueLabel.Render(fmt.Sprintf(i18n.T("sidebar.queued"), queue))
 	content := fmt.Sprintf("%s %s", strings.Join(triangles, ""), text)
 	return t.Pills.Focused.Render(content)
 }
@@ -82,7 +83,7 @@ func todoPill(todos []session.Todo, spinnerView string, panelFocused bool, t *st
 
 	total := len(todos)
 
-	label := t.Pills.TodoLabel.Render("To-Do")
+	label := t.Pills.TodoLabel.Render(i18n.T("sidebar.todo"))
 	progress := t.Pills.TodoProgress.Render(fmt.Sprintf("%d/%d", completed, total))
 
 	var content string
@@ -343,9 +344,9 @@ func (m *UI) renderPills() {
 
 	pillsRow := lipgloss.JoinHorizontal(lipgloss.Top, pills...)
 
-	helpDesc := "open"
+	helpDesc := i18n.T("sidebar.open")
 	if m.pillsExpanded {
-		helpDesc = "close"
+		helpDesc = i18n.T("sidebar.close")
 	}
 	helpKey := t.Pills.HelpKey.Render("ctrl+t")
 	helpText := t.Pills.HelpText.Render(helpDesc)

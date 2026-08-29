@@ -6,6 +6,7 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/ui/common"
 	uv "github.com/charmbracelet/ultraviolet"
 )
@@ -22,10 +23,12 @@ const (
 	inputContentHeight = 1
 )
 
-// CloseKey is the default key binding to close dialogs.
+// CloseKey is the default key binding to close dialogs. The help text
+// is looked up at construction time of each dialog so it tracks the
+// active locale.
 var CloseKey = key.NewBinding(
 	key.WithKeys("esc", "alt+esc"),
-	key.WithHelp("esc", "exit"),
+	key.WithHelp("esc", i18n.T("key.exit")),
 )
 
 // Action represents an action taken in a dialog after handling a message.

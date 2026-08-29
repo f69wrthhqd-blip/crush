@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/charmbracelet/crush/internal/agent/tools"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/message"
 	"github.com/charmbracelet/crush/internal/ui/styles"
 )
@@ -36,23 +37,23 @@ type FetchToolRenderContext struct{}
 func (f *FetchToolRenderContext) RenderTool(sty *styles.Styles, width int, opts *ToolRenderOpts) string {
 	cappedWidth := cappedMessageWidth(width)
 	if opts.IsPending() {
-		return pendingTool(sty, "Fetch", opts.Anim, opts.Compact)
+		return pendingTool(sty, i18n.T("chat.fetch"), opts.Anim, opts.Compact)
 	}
 
 	var params tools.FetchParams
 	if err := json.Unmarshal([]byte(opts.ToolCall.Input), &params); err != nil {
-		return toolErrorContent(sty, &message.ToolResult{Content: "Invalid parameters"}, cappedWidth)
+		return toolErrorContent(sty, &message.ToolResult{Content: i18n.T("chat.invalid_parameters")}, cappedWidth)
 	}
 
 	toolParams := []string{params.URL}
 	if params.Format != "" {
-		toolParams = append(toolParams, "format", params.Format)
+		toolParams = append(toolParams, i18n.T("chat.format"), params.Format)
 	}
 	if params.Timeout != 0 {
-		toolParams = append(toolParams, "timeout", formatTimeout(params.Timeout))
+		toolParams = append(toolParams, i18n.T("chat.timeout"), formatTimeout(params.Timeout))
 	}
 
-	header := toolHeader(sty, opts.Status, "Fetch", cappedWidth, opts, toolParams...)
+	header := toolHeader(sty, opts.Status, i18n.T("chat.fetch"), cappedWidth, opts, toolParams...)
 	if opts.Compact {
 		return header
 	}
@@ -111,16 +112,16 @@ type WebFetchToolRenderContext struct{}
 func (w *WebFetchToolRenderContext) RenderTool(sty *styles.Styles, width int, opts *ToolRenderOpts) string {
 	cappedWidth := cappedMessageWidth(width)
 	if opts.IsPending() {
-		return pendingTool(sty, "Fetch", opts.Anim, opts.Compact)
+		return pendingTool(sty, i18n.T("chat.fetch"), opts.Anim, opts.Compact)
 	}
 
 	var params tools.WebFetchParams
 	if err := json.Unmarshal([]byte(opts.ToolCall.Input), &params); err != nil {
-		return toolErrorContent(sty, &message.ToolResult{Content: "Invalid parameters"}, cappedWidth)
+		return toolErrorContent(sty, &message.ToolResult{Content: i18n.T("chat.invalid_parameters")}, cappedWidth)
 	}
 
 	toolParams := []string{params.URL}
-	header := toolHeader(sty, opts.Status, "Fetch", cappedWidth, opts, toolParams...)
+	header := toolHeader(sty, opts.Status, i18n.T("chat.fetch"), cappedWidth, opts, toolParams...)
 	if opts.Compact {
 		return header
 	}
@@ -165,16 +166,16 @@ type WebSearchToolRenderContext struct{}
 func (w *WebSearchToolRenderContext) RenderTool(sty *styles.Styles, width int, opts *ToolRenderOpts) string {
 	cappedWidth := cappedMessageWidth(width)
 	if opts.IsPending() {
-		return pendingTool(sty, "Search", opts.Anim, opts.Compact)
+		return pendingTool(sty, i18n.T("chat.search"), opts.Anim, opts.Compact)
 	}
 
 	var params tools.WebSearchParams
 	if err := json.Unmarshal([]byte(opts.ToolCall.Input), &params); err != nil {
-		return toolErrorContent(sty, &message.ToolResult{Content: "Invalid parameters"}, cappedWidth)
+		return toolErrorContent(sty, &message.ToolResult{Content: i18n.T("chat.invalid_parameters")}, cappedWidth)
 	}
 
 	toolParams := []string{params.Query}
-	header := toolHeader(sty, opts.Status, "Search", cappedWidth, opts, toolParams...)
+	header := toolHeader(sty, opts.Status, i18n.T("chat.search"), cappedWidth, opts, toolParams...)
 	if opts.Compact {
 		return header
 	}

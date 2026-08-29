@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/charmbracelet/crush/internal/agent/tools"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/message"
 	"github.com/charmbracelet/crush/internal/ui/styles"
 )
@@ -32,13 +33,13 @@ type SymbolsToolRenderContext struct{}
 func (r *SymbolsToolRenderContext) RenderTool(sty *styles.Styles, width int, opts *ToolRenderOpts) string {
 	cappedWidth := cappedMessageWidth(width)
 	if opts.IsPending() {
-		return pendingTool(sty, "List Symbols", opts.Anim, opts.Compact)
+		return pendingTool(sty, i18n.T("chat.list_symbols"), opts.Anim, opts.Compact)
 	}
 
 	var params tools.SymbolsParams
 	_ = json.Unmarshal([]byte(opts.ToolCall.Input), &params)
 
-	header := toolHeader(sty, opts.Status, "List Symbols", cappedWidth, opts, params.FilePath)
+	header := toolHeader(sty, opts.Status, i18n.T("chat.list_symbols"), cappedWidth, opts, params.FilePath)
 	if opts.Compact {
 		return header
 	}
