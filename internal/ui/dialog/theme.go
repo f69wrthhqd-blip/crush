@@ -285,7 +285,11 @@ func (l *Theme) setItems() {
 
 	l.list.SetItems(items...)
 	l.list.SetSelected(selectedIndex)
-	l.list.ScrollToSelected()
+	// Scrolling is deliberately left to Draw: the list viewport is not
+	// sized yet at construction time, so scrolling here would compute a
+	// bogus offset (the selected item pinned to the top of an unsized
+	// viewport leaves blank rows once rendered). Draw re-scrolls to the
+	// selection on every frame.
 }
 
 // Filter returns the filter value for the theme item.
@@ -326,20 +330,39 @@ func (l *ThemeItem) SetMatch(m fuzzy.Match) {
 // name followed by a row of color swatches drawn in the theme's own
 // palette, plus low-contrast and current markers when they apply.
 func (l *ThemeItem) Render(width int) string {
-	info := l.renderSwatches()
+	// The swatch chips embed their own SGR sequences whose resets would
+	// drop the row's highlight background for everything after them (the
+	// classic inner-reset pitfall). Every info segment therefore carries
+	// the row background explicitly, keeping the focused row continuous.
+	rowStyle := l.t.Dialog.NormalItem
+	if l.focused {
+		rowStyle = l.t.Dialog.SelectedItem
+	}
+	// Unset backgrounds come back as NoColor rather than nil; normalize
+	// so the helpers below only carry a background when one exists.
+	rowBg := rowStyle.GetBackground()
+	if _, isNoColor := rowBg.(lipgloss.NoColor); isNoColor {
+		rowBg = nil
+	}
+
+	info := l.renderSwatches(rowBg)
 	if l.contrastWarn {
-		if info != "" {
-			info += " "
+		st := l.t.LSP.WarningDiagnostic
+		if rowBg != nil {
+			st = st.Background(rowBg)
 		}
-		// Rendered last so the segment's own color reset cannot drop the
-		// info-column color for anything that follows.
-		info += l.t.LSP.WarningDiagnostic.Render("⚠ " + i18n.T("theme.contrast_low"))
+		info = joinInfo(info, st.Render("⚠ "+i18n.T("theme.contrast_low")), rowBg)
 	}
 	if l.isCurrent {
-		if info != "" {
-			info += " "
+		fg := l.t.Dialog.ListItem.InfoBlurred.GetForeground()
+		if l.focused {
+			fg = l.t.Dialog.SelectedItem.GetForeground()
 		}
-		info += i18n.T("theme.current")
+		st := lipgloss.NewStyle().Foreground(fg)
+		if rowBg != nil {
+			st = st.Background(rowBg)
+		}
+		info = joinInfo(info, st.Render(i18n.T("theme.current")), rowBg)
 	}
 	st := ListItemStyles{
 		ItemBlurred:     l.t.Dialog.NormalItem,
@@ -350,19 +373,42 @@ func (l *ThemeItem) Render(width int) string {
 	return renderItem(st, l.name, info, l.focused, width, l.cache, &l.m)
 }
 
+// joinInfo appends a pre-styled info segment, separating it from any
+// previous content with a space that carries the row background.
+func joinInfo(info, segment string, rowBg color.Color) string {
+	if info == "" {
+		return segment
+	}
+	return info + bgSpace(rowBg) + segment
+}
+
+// bgSpace returns a single space carrying the row background so gaps
+// between info segments keep the selected row's highlight.
+func bgSpace(rowBg color.Color) string {
+	if rowBg == nil {
+		return " "
+	}
+	return lipgloss.NewStyle().Background(rowBg).Render(" ")
+}
+
 // renderSwatches renders the preview color chips for the theme. Each
 // chip uses the theme's own color so the list doubles as a palette
-// preview, independent of the active theme.
-func (l *ThemeItem) renderSwatches() string {
+// preview, independent of the active theme. Chips and their separators
+// carry the row background so they sit inside the focused highlight.
+func (l *ThemeItem) renderSwatches(rowBg color.Color) string {
 	if len(l.swatches) == 0 {
 		return ""
 	}
 	var b strings.Builder
 	for i, c := range l.swatches {
 		if i > 0 {
-			b.WriteString(" ")
+			b.WriteString(bgSpace(rowBg))
 		}
-		b.WriteString(lipgloss.NewStyle().Foreground(c).Render("██"))
+		st := lipgloss.NewStyle().Foreground(c)
+		if rowBg != nil {
+			st = st.Background(rowBg)
+		}
+		b.WriteString(st.Render("██"))
 	}
 	return b.String()
 }

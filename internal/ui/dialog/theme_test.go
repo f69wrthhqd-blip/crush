@@ -2,6 +2,7 @@ package dialog
 
 import (
 	"image"
+	"strings"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
@@ -11,6 +12,7 @@ import (
 	"github.com/charmbracelet/crush/internal/ui/styles"
 	"github.com/charmbracelet/crush/internal/workspace"
 	uv "github.com/charmbracelet/ultraviolet"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/stretchr/testify/require"
 )
 
@@ -93,13 +95,65 @@ func TestThemeDialog(t *testing.T) {
 		require.Equal(t, "dracula", selectAction.Key)
 	})
 
-	t.Run("renders without overflow", func(t *testing.T) {
+	t.Run("renders the list on first open with the auto entry selected", func(t *testing.T) {
 		t.Parallel()
-		d := newThemeTestDialog(t, "catppuccin-mocha")
+		// Regression: a fresh FilterableList starts with a -1 scroll
+		// offset (from its constructor-time empty SetItems). When the
+		// selected item was already in view, ScrollToSelected never
+		// corrected it and the whole list rendered blank.
+		d := newThemeTestDialog(t, "")
+		scr := uv.NewScreenBuffer(113, 37)
+		d.Draw(scr, image.Rect(0, 0, 113, 37))
+
+		out := d.list.Render()
+		require.NotEmpty(t, out, "list must render on first open")
+		for i, line := range strings.Split(out, "\n") {
+			require.Greater(t, ansi.StringWidth(line), 0,
+				"viewport row %d is blank", i)
+		}
+	})
+
+	t.Run("fills the viewport when the selection is near the end", func(t *testing.T) {
+		t.Parallel()
+		// Regression: opening the picker with a late-list theme selected
+		// used to pin the selection to the top of the viewport, leaving
+		// blank rows below the last item.
+		d := newThemeTestDialog(t, "github-light")
 		scr := uv.NewScreenBuffer(80, 24)
-		require.NotPanics(t, func() {
-			d.Draw(scr, image.Rect(0, 0, 80, 24))
-		})
+		d.Draw(scr, image.Rect(0, 0, 80, 24))
+
+		rendered := strings.Split(d.list.Render(), "\n")
+		require.NotEmpty(t, rendered)
+		for i, line := range rendered {
+			require.Greater(t, ansi.StringWidth(line), 0,
+				"viewport row %d is blank", i)
+		}
+		// The viewport must be full: rows == viewport height while items
+		// remain (22 entries, height < 22 here).
+		require.Len(t, rendered, d.list.Height())
+	})
+
+	t.Run("focused row keeps its highlight across the swatches", func(t *testing.T) {
+		t.Parallel()
+		// Regression: the swatch chips' embedded color resets used to
+		// drop the focused row's highlight background for everything
+		// rendered after them.
+		d := newThemeTestDialog(t, "nord")
+		selected, ok := d.list.SelectedItem().(*ThemeItem)
+		require.True(t, ok)
+
+		// Draw sizes the viewport and runs the list's render callback,
+		// which is what marks the selected item focused.
+		d.Draw(uv.NewScreenBuffer(80, 24), image.Rect(0, 0, 80, 24))
+
+		focused := selected.Render(80)
+		require.GreaterOrEqual(t, strings.Count(focused, "\x1b[48;2;"), 6,
+			"focused row must re-apply its background after the swatch chips")
+
+		first, ok := d.list.FilteredItems()[0].(*ThemeItem)
+		require.True(t, ok)
+		require.Equal(t, 0, strings.Count(first.Render(80), "\x1b[48;2;"),
+			"blurred rows carry no explicit background")
 	})
 
 	t.Run("flags light themes as low contrast over a dark terminal", func(t *testing.T) {

@@ -830,3 +830,27 @@ func totalRenderHits(items []*trackedItem) int {
 	}
 	return n
 }
+
+// TestList_SetItems_EmptyThenFull covers the blank-list regression: an
+// initial SetItems on an empty list drops the scroll offset to -1
+// (min(0, -1)), and a later SetItems with real items must clamp the
+// offset back into range, otherwise Render breaks on the first item
+// and returns nothing.
+func TestList_SetItems_EmptyThenFull(t *testing.T) {
+	t.Parallel()
+
+	l := NewList()
+	l.SetItems() // the constructor-time empty population
+	l.SetSize(40, 5)
+
+	items := []Item{
+		newTrackedItem("a", "alpha", true),
+		newTrackedItem("b", "bravo", true),
+		newTrackedItem("c", "charlie", true),
+	}
+	l.SetItems(items...)
+
+	out := l.Render()
+	require.NotEmpty(t, out, "list must render after repopulation")
+	require.LessOrEqual(t, len(strings.Split(out, "\n")), 5)
+}

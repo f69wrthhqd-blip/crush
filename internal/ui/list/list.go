@@ -557,8 +557,14 @@ func (l *List) Render() string {
 
 	budget := max(l.height, 0)
 	lines := make([]string, 0, budget)
-	currentIdx := l.offsetIdx
+	// A negative offset (e.g. from a historical SetItems-on-empty) would
+	// make renderItemEntry return nil on the first iteration and yield a
+	// blank list; clamp defensively so rendering always starts at 0.
+	currentIdx := max(l.offsetIdx, 0)
 	currentOffset := l.offsetLine
+	if l.offsetIdx < 0 {
+		l.offsetIdx = 0
+	}
 
 	for currentIdx < len(l.items) {
 		remaining := budget - len(lines)
@@ -642,7 +648,10 @@ func (l *List) PrependItems(items ...Item) {
 func (l *List) SetItems(items ...Item) {
 	l.items = items
 	l.selectedIdx = min(l.selectedIdx, len(l.items)-1)
-	l.offsetIdx = min(l.offsetIdx, len(l.items)-1)
+	// Clamp to zero as well: a previous SetItems on an empty list drops
+	// the offset to -1 (min(0, -1)), and an unclamped -1 makes Render
+	// break on the first item, yielding a blank list.
+	l.offsetIdx = max(0, min(l.offsetIdx, len(l.items)-1))
 	l.offsetLine = 0
 	l.retainCacheFor(items)
 	l.totalHeightValid = false
@@ -750,6 +759,16 @@ func (l *List) ScrollToSelected() {
 			// All items fit in the viewport
 			l.ScrollToTop()
 		}
+	}
+
+	// Clamp the offset to the last meaningful position so the viewport
+	// stays filled: an offset past the end (e.g. computed before the
+	// viewport was sized, or left over after the item count shrank)
+	// would otherwise leave blank rows below the last item.
+	maxIdx, maxLine, _ := l.lastOffsetItem()
+	if l.offsetIdx > maxIdx || (l.offsetIdx == maxIdx && l.offsetLine > maxLine) {
+		l.offsetIdx = maxIdx
+		l.offsetLine = maxLine
 	}
 }
 
