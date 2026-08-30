@@ -88,10 +88,9 @@ func CharmtonePantera() Styles {
 		ansiBrightWhite:   charmtone.Salt,
 	})
 
-	// Bang ! prompt overrides - use Salt/Hazy/Larple colors.
-	s.Editor.PromptBangIconFocused = s.Editor.PromptBangIconFocused.
-		Foreground(charmtone.Salt).
-		Background(charmtone.Hazy)
+	// Bang > prompt overrides - use Salt/Hazy/Larple colors.
+	s.Editor.PromptBangArrowFocused = s.Editor.PromptBangArrowFocused.
+		Foreground(charmtone.Salt)
 	s.Editor.PromptBangDotsFocused = s.Editor.PromptBangDotsFocused.
 		Foreground(charmtone.Hazy)
 	s.Editor.PromptBangDotsBlurred = s.Editor.PromptBangDotsBlurred.

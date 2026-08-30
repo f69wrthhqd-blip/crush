@@ -128,31 +128,30 @@ type Styles struct {
 	Editor struct {
 		Textarea textarea.Styles
 
-		// Normal mode prompt (default "::: ").
+		// Prompt arrow (">") and "::" continuation dots shared by all
+		// modes. Each mode recolors the arrow.
+		PromptArrowFocused  lipgloss.Style
+		PromptArrowBlurred  lipgloss.Style
 		PromptNormalFocused lipgloss.Style
 		PromptNormalBlurred lipgloss.Style
 
-		// Build mode prompt label ("build").
-		PromptBuildIconFocused lipgloss.Style
-		PromptBuildIconBlurred lipgloss.Style
+		// YOLO mode prompt (">" arrow + "::" dots).
+		PromptYoloArrowFocused lipgloss.Style
+		PromptYoloArrowBlurred lipgloss.Style
+		PromptYoloDotsFocused  lipgloss.Style
+		PromptYoloDotsBlurred  lipgloss.Style
 
-		// YOLO mode prompt (" ! " icon + ":::" dots).
-		PromptYoloIconFocused lipgloss.Style
-		PromptYoloIconBlurred lipgloss.Style
-		PromptYoloDotsFocused lipgloss.Style
-		PromptYoloDotsBlurred lipgloss.Style
+		// Bang mode prompt (">" arrow + "::" dots).
+		PromptBangArrowFocused lipgloss.Style
+		PromptBangArrowBlurred lipgloss.Style
+		PromptBangDotsFocused  lipgloss.Style
+		PromptBangDotsBlurred  lipgloss.Style
 
-		// Bang mode prompt (" ! " icon + ":::" dots, Turtle color).
-		PromptBangIconFocused lipgloss.Style
-		PromptBangIconBlurred lipgloss.Style
-		PromptBangDotsFocused lipgloss.Style
-		PromptBangDotsBlurred lipgloss.Style
-
-		// Plan mode prompt (" plan " icon + ":::" dots).
-		PromptPlanIconFocused lipgloss.Style
-		PromptPlanIconBlurred lipgloss.Style
-		PromptPlanDotsFocused lipgloss.Style
-		PromptPlanDotsBlurred lipgloss.Style
+		// Plan mode prompt (">" arrow + "::" dots).
+		PromptPlanArrowFocused lipgloss.Style
+		PromptPlanArrowBlurred lipgloss.Style
+		PromptPlanDotsFocused  lipgloss.Style
+		PromptPlanDotsBlurred  lipgloss.Style
 
 		// Question mode prompt (" ? " icon + ":::" dots).
 		PromptQuestionIconFocused lipgloss.Style

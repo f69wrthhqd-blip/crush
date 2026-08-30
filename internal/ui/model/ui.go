@@ -3988,32 +3988,33 @@ func (m *UI) openPromptEnhanceDialog(original, optimized string) tea.Cmd {
 }
 
 // setEditorPrompt configures the textarea prompt function based on whether
-// yolo mode or bang mode is enabled.
+// yolo mode or bang mode is enabled. The prompt column is 2 wide so the ">"
+// arrow sits right next to the input text.
 func (m *UI) setEditorPrompt(yolo bool) {
 	if m.bangMode {
-		m.textarea.SetPromptFunc(4, m.bangPromptFunc)
+		m.textarea.SetPromptFunc(2, m.bangPromptFunc)
 		return
 	}
 	if m.planModeCached() {
-		m.textarea.SetPromptFunc(4, m.planPromptFunc)
+		m.textarea.SetPromptFunc(2, m.planPromptFunc)
 		return
 	}
 	if yolo {
-		m.textarea.SetPromptFunc(4, m.yoloPromptFunc)
+		m.textarea.SetPromptFunc(2, m.yoloPromptFunc)
 		return
 	}
-	m.textarea.SetPromptFunc(4, m.normalPromptFunc)
+	m.textarea.SetPromptFunc(2, m.normalPromptFunc)
 }
 
 // normalPromptFunc returns the normal (build mode) editor prompt style with
-// a "build" mode label and the "::: " continuation dots.
+// a ">" arrow and the "::" continuation dots.
 func (m *UI) normalPromptFunc(info textarea.PromptInfo) string {
 	t := m.com.Styles
 	if info.LineNumber == 0 {
 		if info.Focused {
-			return t.Editor.PromptBuildIconFocused.Render()
+			return t.Editor.PromptArrowFocused.Render()
 		}
-		return t.Editor.PromptBuildIconBlurred.Render()
+		return t.Editor.PromptArrowBlurred.Render()
 	}
 	if info.Focused {
 		return t.Editor.PromptNormalFocused.Render()
@@ -4021,15 +4022,15 @@ func (m *UI) normalPromptFunc(info textarea.PromptInfo) string {
 	return t.Editor.PromptNormalBlurred.Render()
 }
 
-// yoloPromptFunc returns the yolo mode editor prompt style with warning icon
-// and colored dots.
+// yoloPromptFunc returns the yolo mode editor prompt style with a warning
+// colored arrow and dots.
 func (m *UI) yoloPromptFunc(info textarea.PromptInfo) string {
 	t := m.com.Styles
 	if info.LineNumber == 0 {
 		if info.Focused {
-			return t.Editor.PromptYoloIconFocused.Render()
+			return t.Editor.PromptYoloArrowFocused.Render()
 		} else {
-			return t.Editor.PromptYoloIconBlurred.Render()
+			return t.Editor.PromptYoloArrowBlurred.Render()
 		}
 	}
 	if info.Focused {
@@ -4038,15 +4039,15 @@ func (m *UI) yoloPromptFunc(info textarea.PromptInfo) string {
 	return t.Editor.PromptYoloDotsBlurred.Render()
 }
 
-// planPromptFunc returns the plan mode editor prompt style with a "plan"
-// label and the "::: " continuation dots.
+// planPromptFunc returns the plan mode editor prompt style with a primary
+// colored arrow and the "::" continuation dots.
 func (m *UI) planPromptFunc(info textarea.PromptInfo) string {
 	t := m.com.Styles
 	if info.LineNumber == 0 {
 		if info.Focused {
-			return t.Editor.PromptPlanIconFocused.Render()
+			return t.Editor.PromptPlanArrowFocused.Render()
 		}
-		return t.Editor.PromptPlanIconBlurred.Render()
+		return t.Editor.PromptPlanArrowBlurred.Render()
 	}
 	if info.Focused {
 		return t.Editor.PromptPlanDotsFocused.Render()
@@ -4054,15 +4055,15 @@ func (m *UI) planPromptFunc(info textarea.PromptInfo) string {
 	return t.Editor.PromptPlanDotsBlurred.Render()
 }
 
-// bangPromptFunc returns the bang mode editor prompt style with Turtle-colored
-// icon and dots.
+// bangPromptFunc returns the bang mode editor prompt style with a
+// Salt-colored arrow and dots.
 func (m *UI) bangPromptFunc(info textarea.PromptInfo) string {
 	t := m.com.Styles
 	if info.LineNumber == 0 {
 		if info.Focused {
-			return t.Editor.PromptBangIconFocused.Render()
+			return t.Editor.PromptBangArrowFocused.Render()
 		}
-		return t.Editor.PromptBangIconBlurred.Render()
+		return t.Editor.PromptBangArrowBlurred.Render()
 	}
 	if info.Focused {
 		return t.Editor.PromptBangDotsFocused.Render()
@@ -4246,27 +4247,29 @@ func mimeOf(content []byte) string {
 	return http.DetectContentType(content[:mimeBufferSize])
 }
 
-var readyPlaceholders = [...]string{
-	i18n.T("editor.placeholder_ready1"),
-	i18n.T("editor.placeholder_ready2"),
-	i18n.T("editor.placeholder_ready3"),
-	i18n.T("editor.placeholder_ready"),
+// Placeholder keys are resolved through i18n.T at pick time, not package
+// init, so they follow the locale configured in ui.New.
+var readyPlaceholderKeys = [...]string{
+	"editor.placeholder_ready1",
+	"editor.placeholder_ready2",
+	"editor.placeholder_ready3",
+	"editor.placeholder_ready",
 }
 
-var workingPlaceholders = [...]string{
-	i18n.T("editor.placeholder_working1"),
-	i18n.T("editor.placeholder_working2"),
-	i18n.T("editor.placeholder_working3"),
-	i18n.T("editor.placeholder_working4"),
-	i18n.T("editor.placeholder_working5"),
-	i18n.T("editor.placeholder_working6"),
+var workingPlaceholderKeys = [...]string{
+	"editor.placeholder_working1",
+	"editor.placeholder_working2",
+	"editor.placeholder_working3",
+	"editor.placeholder_working4",
+	"editor.placeholder_working5",
+	"editor.placeholder_working6",
 }
 
 // randomizePlaceholders selects random placeholder text for the textarea's
 // ready and working states.
 func (m *UI) randomizePlaceholders() {
-	m.workingPlaceholder = workingPlaceholders[rand.Intn(len(workingPlaceholders))]
-	m.readyPlaceholder = readyPlaceholders[rand.Intn(len(readyPlaceholders))]
+	m.workingPlaceholder = i18n.T(workingPlaceholderKeys[rand.Intn(len(workingPlaceholderKeys))])
+	m.readyPlaceholder = i18n.T(readyPlaceholderKeys[rand.Intn(len(readyPlaceholderKeys))])
 }
 
 // renderEditorView renders the editor view with attachments if any.
