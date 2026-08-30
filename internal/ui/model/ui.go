@@ -4917,8 +4917,10 @@ func (m *UI) handleQuestionNotification(_ question.Notification) {
 }
 
 // handlePlanApproval processes the user's decision on a presented plan.
-// Choosing "execute" exits plan mode (so the model can start implementing
-// right after approval); the other options keep plan mode active.
+// "Execute" and "execute in fresh context" exit plan mode so the model can
+// start implementing right after approval (the fresh-context summarize and
+// re-invoke are orchestrated by the coordinator). "Exit" dismisses the plan
+// and also leaves plan mode; "continue" keeps planning.
 func (m *UI) handlePlanApproval(responses []question.Answer) {
 	option := agenttools.PlanApprovalCancel
 	if len(responses) > 0 {
@@ -4928,14 +4930,20 @@ func (m *UI) handlePlanApproval(responses []question.Answer) {
 			option = agenttools.PlanApprovalOption(strings.TrimSpace(strings.ToLower(responses[0].FillInText)))
 		}
 	}
-	if option == agenttools.PlanApprovalExecute && m.planModeCached() {
-		if err := m.com.Workspace.AgentSetPlanMode(false); err != nil {
-			return
-		}
-		m.planModeCache.set(false)
-		m.busyFetchGen++
-		m.setEditorPrompt(m.yoloModeCached())
+	switch option {
+	case agenttools.PlanApprovalExecute, agenttools.PlanApprovalExecuteFresh, agenttools.PlanApprovalCancel:
+	default:
+		return
 	}
+	if !m.planModeCached() {
+		return
+	}
+	if err := m.com.Workspace.AgentSetPlanMode(false); err != nil {
+		return
+	}
+	m.planModeCache.set(false)
+	m.busyFetchGen++
+	m.setEditorPrompt(m.yoloModeCached())
 }
 
 // editorContentWidth returns the content width available to the

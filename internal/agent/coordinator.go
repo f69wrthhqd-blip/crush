@@ -754,7 +754,7 @@ func (c *coordinator) buildTools(ctx context.Context, agent config.Agent, isSubA
 	// Question tool is interactive-only and not available to sub-agents.
 	if !isSubAgent && c.interactive {
 		allTools = append(allTools, tools.NewQuestionTool(c.questions))
-		allTools = append(allTools, tools.NewPresentPlanTool(c.questions))
+		allTools = append(allTools, tools.NewPresentPlanTool(c.questions, c.executePlanFresh))
 	}
 
 	// Add LSP tools if user has configured LSPs or auto_lsp is enabled (nil or true).
@@ -1420,6 +1420,49 @@ func (c *coordinator) Summarize(ctx context.Context, sessionID string) error {
 	// Auth failures during summarize flow through fantasy's OnAuthRefresh,
 	// the same path used by regular turns.
 	return c.currentAgent.Summarize(ctx, sessionID, getProviderOptions(c.currentAgent.Model(), providerCfg), c.makeAuthRefreshCallback(providerCfg))
+}
+
+// executePlanFreshWaitTimeout bounds how long the fresh-context plan
+// execution waits for the plan-approval turn to finish unwinding.
+const executePlanFreshWaitTimeout = 10 * time.Second
+
+// executePlanFreshPrompt re-invokes the model after the fresh-context
+// summarize so it implements the plan it presented.
+const executePlanFreshPrompt = "The user approved your plan and asked to implement it in a fresh context. The conversation was summarized to free up context. Implement the approved plan now, following the plan recorded in the summary. Start by creating or updating your todo list."
+
+// executePlanFresh implements the "execute in fresh context" plan-approval
+// option: it waits for the plan-approval turn to unwind, summarizes the
+// conversation to free up context, and re-invokes the model to implement
+// the approved plan. It runs on its own goroutine, detached from the
+// presenting turn's context.
+func (c *coordinator) executePlanFresh(ctx context.Context, sessionID string) {
+	deadline := time.Now().Add(executePlanFreshWaitTimeout)
+	for c.IsSessionBusy(sessionID) {
+		if time.Now().After(deadline) {
+			slog.Error("Timed out waiting for the plan-approval turn to finish", "session_id", sessionID)
+			return
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(50 * time.Millisecond):
+		}
+	}
+
+	if err := c.Summarize(ctx, sessionID); err != nil {
+		if errors.Is(err, ErrSessionBusy) {
+			// The user started a new prompt during the unwind window;
+			// let them drive instead of hijacking the session.
+			slog.Info("Skipping fresh-context plan execution, session busy", "session_id", sessionID)
+			return
+		}
+		slog.Error("Failed to summarize session before fresh-context plan execution", "session_id", sessionID, "error", err)
+		return
+	}
+
+	if _, err := c.Run(ctx, sessionID, executePlanFreshPrompt); err != nil {
+		slog.Error("Failed to start implementing the approved plan", "session_id", sessionID, "error", err)
+	}
 }
 
 // GenerateTitle generates a session title using the current agent.

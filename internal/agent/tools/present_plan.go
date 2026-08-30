@@ -28,13 +28,18 @@ type PresentPlanParams struct {
 type PlanApprovalOption string
 
 const (
-	// PlanApprovalExecute approves the plan and exits plan mode to start
-	// implementing.
+	// PlanApprovalExecute approves the plan and exits plan mode so the
+	// model starts implementing in the current conversation.
 	PlanApprovalExecute PlanApprovalOption = "execute"
+	// PlanApprovalExecuteFresh approves the plan, summarizes the
+	// conversation to free up context, and then starts implementing in
+	// the fresh context.
+	PlanApprovalExecuteFresh PlanApprovalOption = "execute_fresh"
 	// PlanApprovalContinue keeps plan mode active so the plan can be
 	// refined further.
 	PlanApprovalContinue PlanApprovalOption = "continue"
-	// PlanApprovalCancel dismisses the plan without executing.
+	// PlanApprovalCancel dismisses the plan and exits plan mode without
+	// executing.
 	PlanApprovalCancel PlanApprovalOption = "cancel"
 )
 
@@ -49,8 +54,10 @@ const PlanApprovalBatchID = "_plan_approval_batch"
 // NewPresentPlanTool creates the present_plan tool. It publishes a
 // plan-approval question through the question service and blocks until the
 // user picks an option. The returned tool response tells the model whether
-// to start implementing or keep refining.
-func NewPresentPlanTool(svc question.Service) fantasy.AgentTool {
+// to start implementing or keep refining. onExecuteFresh, when non-nil, is
+// invoked when the user picks "execute in fresh context" so the caller can
+// orchestrate the summarize-then-implement handoff.
+func NewPresentPlanTool(svc question.Service, onExecuteFresh func(ctx context.Context, sessionID string)) fantasy.AgentTool {
 	return fantasy.NewAgentTool(
 		PresentPlanToolName,
 		presentPlanDescription,
@@ -63,7 +70,10 @@ func NewPresentPlanTool(svc question.Service) fantasy.AgentTool {
 
 			// Dialog strings are user-facing and localized; the response
 			// strings below stay in English because the model consumes
-			// them.
+			// them. The question text stays short: question.Service
+			// validates it against MaxQuestionLength, and the full plan
+			// is already visible in the conversation transcript where it
+			// renders as markdown.
 			req := question.Request{
 				ID:                 PlanApprovalBatchID,
 				SessionID:          sessionID,
@@ -75,13 +85,18 @@ func NewPresentPlanTool(svc question.Service) fantasy.AgentTool {
 						ID:          PlanApprovalQuestionID,
 						Type:        question.TypeSingleChoice,
 						Label:       i18n.T("plan_approval.label"),
-						Text:        params.Plan,
+						Text:        i18n.T("plan_approval.question_text"),
 						Description: i18n.T("plan_approval.question_description"),
 						Choices: []question.Choice{
 							{
 								ID:          string(PlanApprovalExecute),
 								Label:       i18n.T("plan_approval.execute"),
 								Description: i18n.T("plan_approval.execute_description"),
+							},
+							{
+								ID:          string(PlanApprovalExecuteFresh),
+								Label:       i18n.T("plan_approval.execute_fresh"),
+								Description: i18n.T("plan_approval.execute_fresh_description"),
 							},
 							{
 								ID:          string(PlanApprovalContinue),
@@ -108,32 +123,57 @@ func NewPresentPlanTool(svc question.Service) fantasy.AgentTool {
 				return fantasy.NewTextErrorResponse(err.Error()), nil
 			}
 
+			if planApprovalOption(answers) == PlanApprovalExecuteFresh && onExecuteFresh != nil {
+				// Detach from the tool call's context: this answer ends the
+				// run (and cancels its context), while the orchestration
+				// must outlive it. Session-level Cancel still stops the
+				// follow-up summarize and turn.
+				detached := context.WithoutCancel(ctx)
+				go onExecuteFresh(detached, sessionID)
+			}
+
 			return formatPlanApproval(answers)
 		},
 	)
 }
 
+// planApprovalOption extracts the chosen PlanApprovalOption from the
+// question answers, falling back to cancel for empty or unrecognized
+// answers.
+func planApprovalOption(answers []question.Answer) PlanApprovalOption {
+	if len(answers) == 0 {
+		return PlanApprovalCancel
+	}
+	if len(answers[0].SelectedIDs) > 0 {
+		return PlanApprovalOption(answers[0].SelectedIDs[0])
+	}
+	if answers[0].FillInText != "" {
+		return PlanApprovalOption(strings.TrimSpace(strings.ToLower(answers[0].FillInText)))
+	}
+	return PlanApprovalCancel
+}
+
 // formatPlanApproval converts the plan-approval answer into the tool
 // response fed back to the model.
 func formatPlanApproval(answers []question.Answer) (fantasy.ToolResponse, error) {
-	option := PlanApprovalCancel
-	if len(answers) > 0 {
-		if len(answers[0].SelectedIDs) > 0 {
-			option = PlanApprovalOption(answers[0].SelectedIDs[0])
-		} else if answers[0].FillInText != "" {
-			option = PlanApprovalOption(strings.TrimSpace(strings.ToLower(answers[0].FillInText)))
-		}
-	}
-
-	switch option {
+	switch planApprovalOption(answers) {
 	case PlanApprovalExecute:
-		resp := fantasy.NewTextResponse("User approved the plan. You can now start implementing. Start with updating your todo list if applicable.")
+		// No StopTurn: the turn continues in the same conversation so
+		// the model starts implementing right after the approval.
+		return fantasy.NewTextResponse("User approved the plan. Start implementing it now. Begin by updating your todo list if applicable."), nil
+	case PlanApprovalExecuteFresh:
+		// StopTurn ends this turn; the coordinator summarizes the
+		// conversation and re-invokes the model with the approved plan
+		// in a fresh context.
+		resp := fantasy.NewTextResponse("User approved the plan and chose to execute it in a fresh context. The conversation will be summarized and implementation will start automatically.")
 		resp.StopTurn = true
 		return resp, nil
 	case PlanApprovalContinue:
 		return fantasy.NewTextResponse("User wants to keep refining the plan. Stay in plan mode, address their feedback, and call present_plan again once the plan is complete."), nil
 	default:
-		return fantasy.NewTextResponse("User dismissed the plan without approving it. Stay in plan mode, refine the plan, and call present_plan again when it is ready."), nil
+		resp := fantasy.NewTextResponse("User dismissed the plan and exited plan mode. Do not implement the plan; wait for the user's next request.")
+		resp.StopTurn = true
+		return resp, nil
 	}
 }
 
