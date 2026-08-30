@@ -465,7 +465,7 @@ Crush 有两种 agent 模式：**build** 和 **plan**。
 - **继续规划（Continue planning）**——保持在计划模式，继续完善计划
 - **取消（Cancel）**——不执行，直接关闭计划
 
-在 TUI 中按 <kbd>shift+tab</kbd> 切换计划模式（或通过命令面板 <kbd>ctrl+p</kbd>）。计划模式激活时编辑器提示框显示 `plan` 标签，否则显示 `build`。你也可以运行一次非交互式规划会话：
+在 TUI 中按 <kbd>shift+tab</kbd> 切换计划模式（或通过命令面板 <kbd>ctrl+p</kbd>）。编辑器提示框的 `>` 箭头反映当前模式，计划模式与构建模式下的箭头颜色不同。你也可以运行一次非交互式规划会话：
 
 ```bash
 crush run --plan "调研代码库并提出重构计划"
@@ -478,6 +478,68 @@ crush run --plan "调研代码库并提出重构计划"
 确认对话框会并排展示原始提示词与优化后的提示词：按 <kbd>enter</kbd>（或 <kbd>y</kbd>）将改写结果应用到输入框，或按 <kbd>esc</kbd> 保留原文。优化在后台进行，期间可以继续输入；状态栏的旋转指示器会显示它正在进行。
 
 默认情况下优化使用你当前的对话模型。要改用其他模型，在模型选择器（<kbd>ctrl+l</kbd>，<kbd>tab</kbd> 切换槽位）中选择"提示词优化"槽位，或在 `crushrc` 中配置 `model optimize <provider>/<model>`。
+
+### 主题
+
+Crush 为 TUI 内置了多套配色主题。默认情况下主题跟随所选模型的提供商（例如 Hyper 使用专属主题），但你也可以在**主题中心**中显式选择任意主题——它在命令面板（<kbd>ctrl+p</kbd>）中，以实时预览各主题强调色的方式展示。按 <kbd>enter</kbd> 立即应用主题，或选择**自动（Auto）**恢复为跟随提供商。
+
+也可以在配置中设置主题：
+
+```json
+{
+  "options": {
+    "tui": {
+      "theme": "tokyonight"
+    }
+  }
+}
+```
+
+可用的主题如下：
+
+| Key                  | 说明                     |
+| -------------------- | ------------------------ |
+| `pantera`            | Charmtone Pantera（默认）|
+| `catppuccin-mocha`   | Catppuccin Mocha         |
+| `gruvbox-dark`       | Gruvbox Dark             |
+| `tokyonight`         | Tokyo Night              |
+| `nord`               | Nord                     |
+| `dracula`            | Dracula                  |
+| `one-dark`           | One Dark                 |
+| `ayu-dark`           | Ayu Dark                 |
+| `vesper`             | Vesper                   |
+| `rose-pine`          | Rosé Pine                |
+| `kanagawa`           | Kanagawa                 |
+| `everforest-dark`    | Everforest Dark          |
+| `solarized-dark`     | Solarized Dark           |
+| `monokai`            | Monokai                  |
+| `github-dark`        | GitHub Dark              |
+| `ayu-mirage`         | Ayu Mirage               |
+| `night-owl`          | Night Owl                |
+| `catppuccin-latte`   | Catppuccin Latte（浅色）  |
+| `solarized-light`    | Solarized Light          |
+| `rose-pine-dawn`     | Rosé Pine Dawn（浅色）    |
+| `github-light`       | GitHub Light             |
+
+当终端背景为透明时，Crush 会检测所选主题与你的实际终端背景（深色/浅色）的对比度，并在主题中心给出提示，方便你选择对比度合适的主题。
+
+### UI 语言
+
+TUI 已实现本地化，内置英语和简体中文两套语言包。打开命令面板（<kbd>ctrl+p</kbd>），选择**语言（Language）**并挑选你的偏好语言——界面会立即重新渲染并记住选择。未翻译完整的文案会回退到英语，界面绝不会显示空白。
+
+也可以在配置中设置语言：
+
+```json
+{
+  "options": {
+    "tui": {
+      "locale": "zh-CN"
+    }
+  }
+}
+```
+
+支持的语言：`en`（默认）和 `zh-CN`。
 
 ### 只活一次（--yolo）
 

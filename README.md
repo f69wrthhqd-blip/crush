@@ -560,9 +560,9 @@ then:
 - **Cancel** — dismiss the plan without executing
 
 Toggle plan mode in the TUI with <kbd>shift+tab</kbd> (or via the commands
-palette, <kbd>ctrl+p</kbd>). The editor prompt shows a `plan` label while plan
-mode is active and a `build` label otherwise. You can also run a single
-non-interactive planning session with:
+palette, <kbd>ctrl+p</kbd>). The editor prompt's `>` arrow reflects the active
+mode, colored differently in plan mode versus build mode. You can also run a
+single non-interactive planning session with:
 
 ```bash
 crush run --plan "Investigate the codebase and propose a refactor plan"
@@ -586,6 +586,80 @@ By default the optimization uses your current conversation model. To run it on
 a different model, pick one for the **Prompt Optimization** slot in the model
 picker (<kbd>ctrl+l</kbd>, <kbd>tab</kbd> to cycle), or set it in `crushrc`
 with `model optimize <provider>/<model>`.
+
+### Themes
+
+Crush ships with a set of built-in color themes for the TUI. By default the
+theme follows the selected model's provider (e.g. Hyper uses a dedicated
+theme), but you can pick any theme explicitly from the **theme center**, a
+picker in the commands palette (<kbd>ctrl+p</kbd>) that shows a live preview
+of each theme's accent colors. Press <kbd>enter</kbd> to apply a theme
+immediately, or choose **Auto** to go back to following the provider.
+
+Themes can also be set in your config:
+
+```json
+{
+  "options": {
+    "tui": {
+      "theme": "tokyonight"
+    }
+  }
+}
+```
+
+The following themes are available:
+
+| Key                  | Description                          |
+| -------------------- | ------------------------------------ |
+| `pantera`            | Charmtone Pantera (default)          |
+| `catppuccin-mocha`   | Catppuccin Mocha                     |
+| `gruvbox-dark`       | Gruvbox Dark                         |
+| `tokyonight`         | Tokyo Night                          |
+| `nord`               | Nord                                 |
+| `dracula`            | Dracula                              |
+| `one-dark`           | One Dark                             |
+| `ayu-dark`           | Ayu Dark                             |
+| `vesper`             | Vesper                               |
+| `rose-pine`          | Rosé Pine                            |
+| `kanagawa`           | Kanagawa                             |
+| `everforest-dark`    | Everforest Dark                      |
+| `solarized-dark`     | Solarized Dark                       |
+| `monokai`            | Monokai                              |
+| `github-dark`        | GitHub Dark                          |
+| `ayu-mirage`         | Ayu Mirage                           |
+| `night-owl`          | Night Owl                            |
+| `catppuccin-latte`   | Catppuccin Latte (light)             |
+| `solarized-light`    | Solarized Light                      |
+| `rose-pine-dawn`     | Rosé Pine Dawn (light)               |
+| `github-light`       | GitHub Light                         |
+
+When the terminal background is transparent, Crush detects whether the
+selected theme would become illegible against your actual terminal background
+(light vs. dark) and warns you in the theme center so you can pick a theme
+with the right contrast.
+
+### UI Language
+
+The TUI is localized and ships with English and Simplified Chinese catalogs.
+Open the commands palette (<kbd>ctrl+p</kbd>), choose **Language**, and pick
+your preferred language — the UI re-renders immediately and the choice
+persists. Incomplete translations fall back to English so the UI never renders
+blank.
+
+You can also set the locale in your config:
+
+```json
+{
+  "options": {
+    "tui": {
+      "locale": "zh-CN"
+    }
+  }
+}
+```
+
+Supported locales: `en` (default) and `zh-CN`.
 
 ### You only live once
 
