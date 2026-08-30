@@ -273,8 +273,10 @@ type LSPConfig struct {
 type TUIOptions struct {
 	CompactMode bool   `json:"compact_mode,omitempty" jsonschema:"description=Enable compact mode for the TUI interface,default=false"`
 	DiffMode    string `json:"diff_mode,omitempty" jsonschema:"description=Diff mode for the TUI interface,enum=unified,enum=split"`
-	// Here we can add themes later or any TUI related options
-	//
+	// Theme selects the UI color theme. When unset the theme follows the
+	// selected large model's provider. The known keys are the ones
+	// registered in internal/ui/styles.
+	Theme string `json:"theme,omitempty" jsonschema:"description=UI color theme. Unset follows the selected model's provider,enum=pantera,enum=catppuccin-mocha,enum=gruvbox-dark,enum=tokyonight,enum=nord,enum=dracula,enum=one-dark,enum=ayu-dark,enum=vesper,enum=catppuccin-latte,enum=solarized-light"`
 
 	Completions Completions `json:"completions,omitzero" jsonschema:"description=Completions UI options"`
 	Transparent *bool       `json:"transparent,omitempty" jsonschema:"description=Enable transparent background for the TUI interface,default=false"`
@@ -777,6 +779,16 @@ func (c *Config) ensureTUI() *TUIOptions {
 		c.Options.TUI = &TUIOptions{}
 	}
 	return c.Options.TUI
+}
+
+// TUITheme returns the user-selected theme key for the TUI, or an empty
+// string when unset so callers can fall back to the provider-derived
+// theme. The nil-safe read mirrors [TUIOptions.IsTransparent].
+func (c *Config) TUITheme() string {
+	if c == nil || c.Options == nil || c.Options.TUI == nil {
+		return ""
+	}
+	return c.Options.TUI.Theme
 }
 
 func (c *Config) EnabledProviders() []ProviderConfig {

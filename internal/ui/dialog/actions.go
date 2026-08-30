@@ -108,6 +108,12 @@ type (
 	ActionSelectLanguage struct {
 		Code string
 	}
+	// ActionSelectTheme is a message indicating the UI theme has been
+	// changed. An empty key means "auto": the theme follows the selected
+	// large model's provider.
+	ActionSelectTheme struct {
+		Key string
+	}
 )
 
 // Messages for MCP OAuth authentication dialog.

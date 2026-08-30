@@ -441,10 +441,13 @@ func outputSessionJSON(w io.Writer, sess session.Session, msgs []*message.Messag
 
 func outputSessionHuman(ctx context.Context, cfg *config.ConfigStore, sess session.Session, msgs []*message.Message) error {
 	var providerID string
+	var themeKey string
 	if cfg != nil {
-		providerID = cfg.Config().Models[config.SelectedModelTypeLarge].Provider
+		c := cfg.Config()
+		providerID = c.Models[config.SelectedModelTypeLarge].Provider
+		themeKey = c.TUITheme()
 	}
-	styles := styles.ThemeForProvider(providerID)
+	styles, _ := styles.ThemeFromOptions(themeKey, providerID)
 	toolResults := chat.BuildToolResultMap(msgs)
 
 	width := sessionOutputWidth

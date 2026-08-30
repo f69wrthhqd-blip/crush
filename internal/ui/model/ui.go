@@ -500,10 +500,11 @@ func New(com *common.Common, initialSessionID string, continueLast bool) *UI {
 
 	status := NewStatus(com, ui)
 
-	// Seed the active theme key from the large model provider so the
-	// first model selection can correctly skip a redundant theme swap.
+	// Seed the active theme key from the config (a user-selected theme
+	// wins over the provider mapping) so the first theme refresh can
+	// correctly skip a redundant style rebuild.
 	if cfg := com.Config(); cfg != nil {
-		ui.themeKey = styles.ThemeKeyForProvider(cfg.Models[config.SelectedModelTypeLarge].Provider)
+		ui.themeKey = styles.EffectiveThemeKey(cfg.TUITheme(), cfg.Models[config.SelectedModelTypeLarge].Provider)
 	}
 
 	// Seed the yolo cache once at construction; afterwards it is kept
@@ -2010,6 +2011,31 @@ func (m *UI) handleDialogMsg(msg tea.Msg) tea.Cmd {
 		// Close the language dialog; any other open dialog rebuilds its
 		// labels the next time it is opened.
 		m.dialog.CloseDialog(dialog.LanguageID)
+	case dialog.ActionSelectTheme:
+		if cfg := m.com.Config(); cfg != nil {
+			if err := m.com.Workspace.SetConfigField(config.ScopeGlobal, "options.tui.theme", msg.Key); err != nil {
+				cmds = append(cmds, util.ReportError(err))
+			} else {
+				// Mirror the persisted value into the in-memory snapshot
+				// so subsequent theme resolution sees it immediately.
+				if cfg.Options == nil {
+					cfg.Options = &config.Options{}
+				}
+				if cfg.Options.TUI == nil {
+					cfg.Options.TUI = &config.TUIOptions{}
+				}
+				cfg.Options.TUI.Theme = msg.Key
+				// The key guard makes this a no-op when the resolved
+				// theme did not actually change.
+				m.refreshTheme()
+				name := i18n.T("theme.auto")
+				if msg.Key != "" {
+					name = styles.ThemeName(msg.Key)
+				}
+				cmds = append(cmds, util.CmdHandler(util.NewInfoMsg(fmt.Sprintf(i18n.T("status.theme_changed"), name))))
+			}
+		}
+		m.dialog.CloseDialog(dialog.ThemeID)
 	case dialog.ActionNewSession:
 		if m.isAgentBusy() {
 			cmds = append(cmds, util.ReportWarn(i18n.T("status.agent_busy_new_session")))
@@ -2338,7 +2364,7 @@ func (m *UI) restoreModelFromSession(msgs []message.Message) tea.Cmd {
 		return nil
 	}
 
-	m.applyThemeForProvider(lastAssistant.Provider)
+	m.refreshTheme()
 
 	if _, ok := cfg.Models[config.SelectedModelTypeSmall]; !ok {
 		smallModel := m.com.Workspace.GetDefaultSmallModel(lastAssistant.Provider)
@@ -2407,11 +2433,11 @@ func (m *UI) handleSelectModel(msg dialog.ActionSelectModel) tea.Cmd {
 		cmds = append(cmds, util.ReportError(err))
 	} else {
 		if msg.ModelType == config.SelectedModelTypeLarge {
-			// Swap the theme live based on the newly selected large
-			// model's provider. Skipped when the provider resolves to
-			// the already-active theme, which avoids a full markdown
-			// re-render of the transcript on every selection.
-			m.applyThemeForProvider(providerID)
+			// Re-resolve the theme after the large model changed. A
+			// user-selected theme pins the styles regardless of provider,
+			// and the key check skips the full markdown re-render when the
+			// provider resolves to the already-active theme.
+			m.refreshTheme()
 		}
 		if _, ok := cfg.Models[config.SelectedModelTypeSmall]; !ok {
 			// Ensure small model is set is unset.
@@ -4290,19 +4316,24 @@ func (m *UI) cacheSidebarLogo(width int) {
 	m.sidebarLogo = renderLogo(m.com.Styles, true, m.com.IsHyper(), width)
 }
 
-// applyThemeForProvider swaps the active theme to the one associated with
-// the given provider, but only when that theme differs from the one
-// already applied. Most providers share a single theme, so re-selecting a
-// model from the same theme family would otherwise pay the full cost of
-// invalidating the markdown renderer cache and re-rendering the entire
-// transcript for no visible change.
-func (m *UI) applyThemeForProvider(providerID string) {
-	key := styles.ThemeKeyForProvider(providerID)
+// refreshTheme re-resolves the active theme from the config and applies
+// it when it differs from the one already applied. A user-selected theme
+// (options.tui.theme) always wins; otherwise the theme follows the large
+// model's provider. When the resolved key matches the applied one the
+// rebuild is skipped entirely, so most provider switches pay no markdown
+// re-render cost.
+func (m *UI) refreshTheme() {
+	cfg := m.com.Config()
+	if cfg == nil {
+		return
+	}
+	key := styles.EffectiveThemeKey(cfg.TUITheme(), cfg.Models[config.SelectedModelTypeLarge].Provider)
 	if key == m.themeKey {
 		return
 	}
+	s, _ := styles.ThemeByKey(key)
 	m.themeKey = key
-	m.applyTheme(styles.ThemeForProvider(providerID))
+	m.applyTheme(s)
 }
 
 // applyTheme replaces the active styles with the given theme, drops the
@@ -4605,6 +4636,10 @@ func (m *UI) openDialog(id string) tea.Cmd {
 		if cmd := m.openLanguageDialog(); cmd != nil {
 			cmds = append(cmds, cmd)
 		}
+	case dialog.ThemeID:
+		if cmd := m.openThemeDialog(); cmd != nil {
+			cmds = append(cmds, cmd)
+		}
 	case dialog.FilePickerID:
 		if cmd := m.openFilesDialog(); cmd != nil {
 			cmds = append(cmds, cmd)
@@ -4715,6 +4750,18 @@ func (m *UI) openLanguageDialog() tea.Cmd {
 
 	languageDialog := dialog.NewLanguage(m.com)
 	m.dialog.OpenDialog(languageDialog)
+	return nil
+}
+
+// openThemeDialog opens the theme picker dialog.
+func (m *UI) openThemeDialog() tea.Cmd {
+	if m.dialog.ContainsDialog(dialog.ThemeID) {
+		m.dialog.BringToFront(dialog.ThemeID)
+		return nil
+	}
+
+	themeDialog := dialog.NewTheme(m.com)
+	m.dialog.OpenDialog(themeDialog)
 	return nil
 }
 

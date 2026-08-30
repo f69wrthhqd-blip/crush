@@ -538,6 +538,9 @@ func (c *Commands) defaultCommands() []*CommandItem {
 	// Add a command for selecting the UI display language.
 	commands = append(commands, NewCommandItem(c.com.Styles, "select_language", i18n.T("commands.language"), "", ActionOpenDialog{DialogID: LanguageID}))
 
+	// Add a command for selecting the UI color theme.
+	commands = append(commands, NewCommandItem(c.com.Styles, "select_theme", i18n.T("commands.theme"), "", ActionOpenDialog{DialogID: ThemeID}))
+
 	commands = append(
 		commands,
 		NewCommandItem(c.com.Styles, "toggle_yolo", i18n.T("commands.toggle_yolo"), "ctrl+y", ActionToggleYoloMode{}),
