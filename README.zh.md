@@ -2,10 +2,13 @@
 
 [English](README.md) | 中文
 
+> [!IMPORTANT]
+> **本项目是 fork。** Crush 是 [Charm](https://charm.land) 出品的终端 AI 编程助手。本仓库是 [charmbracelet/crush](https://github.com/charmbracelet/crush) 的社区 fork，跟随上游项目，可能带有 fork 特有的改动。原项目、官方文档和发行版请参见[上游仓库](https://github.com/charmbracelet/crush)。
+
 <p align="center">
     <a href="https://stuff.charm.sh/crush/charm-crush.png"><img width="450" alt="Charm Crush Logo" src="https://github.com/user-attachments/assets/cf8ca3ce-8b02-43f0-9d0f-5a331488da4b" /></a><br />
-    <a href="https://github.com/charmbracelet/crush/releases"><img src="https://img.shields.io/github/release/charmbracelet/crush" alt="Latest Release"></a>
-    <a href="https://github.com/charmbracelet/crush/actions"><img src="https://github.com/charmbracelet/crush/actions/workflows/build.yml/badge.svg" alt="Build Status"></a>
+    <a href="https://github.com/f69wrthhqd-blip/crush/releases"><img src="https://img.shields.io/github/release/f69wrthhqd-blip/crush" alt="Latest Release"></a>
+    <a href="https://github.com/f69wrthhqd-blip/crush/actions"><img src="https://github.com/f69wrthhqd-blip/crush/actions/workflows/build.yml/badge.svg" alt="Build Status"></a>
 </p>
 
 <p align="center">终端里的编程新搭档，<br />无缝接入你的工具、代码与工作流，全面兼容主流 LLM 模型。</p>
@@ -24,6 +27,9 @@
 - **工业级：** 基于 Charm 生态构建，为 25,000+ 应用提供动力，从领先的开源项目到关键业务基础设施
 
 ## 安装
+
+> [!IMPORTANT]
+> 本项目是 fork。下面的包管理器命令安装的是 Charm 发布的**上游** Crush 发行版，而非本 fork。要运行本 fork，请使用下面的 `go install` 命令从源码构建，或从[本 fork 的 releases][releases] 下载二进制文件。
 
 使用包管理器：
 
@@ -159,18 +165,18 @@ sudo yum install crush
 - [软件包][releases] 提供 Debian 和 RPM 格式
 - [二进制文件][releases] 适用于 Linux、macOS、Windows、FreeBSD、OpenBSD 和 NetBSD
 
-[releases]: https://github.com/charmbracelet/crush/releases
+[releases]: https://github.com/f69wrthhqd-blip/crush/releases
 
-或者直接用 Go 安装：
+或者直接用 Go 安装（安装的是**本 fork**，从源码构建）：
 
 ```
-go install github.com/charmbracelet/crush@latest
+go install github.com/f69wrthhqd-blip/crush@latest
 ```
 
 在 illumos（OpenIndiana、OmniOS）上，上述命令可直接使用。只是该系统没有原生桌面通知；基于终端的通知（OSC）和终端铃声仍然可用。在 Oracle Solaris 上，请添加 `-tags sqlite3_dotlk` 以使用点文件锁定的本地数据库：
 
 ```
-go install -tags sqlite3_dotlk github.com/charmbracelet/crush@latest
+go install -tags sqlite3_dotlk github.com/f69wrthhqd-blip/crush@latest
 ```
 
 > [!WARNING]
@@ -895,7 +901,7 @@ crush update-providers --help
 
 Crush 会记录假名化的使用指标（关联到设备特定哈希），维护者依赖这些指标来确定开发和支持优先级。指标仅包含使用元数据；提示词和响应**绝不会**被收集。
 
-具体收集内容的细节见源代码（[这里](https://github.com/charmbracelet/crush/tree/main/internal/event)和[这里](https://github.com/charmbracelet/crush/blob/main/internal/llm/agent/event.go)）。
+具体收集内容的细节见源代码（[这里](https://github.com/f69wrthhqd-blip/crush/tree/main/internal/event)和[这里](https://github.com/f69wrthhqd-blip/crush/blob/main/internal/event/event.go)）。
 
 你可以在任何时候选择退出指标收集，在环境中设置：
 
@@ -920,7 +926,7 @@ Crush 还遵循 [`DO_NOT_TRACK`](https://donottrack.sh/) 约定，可通过 `exp
 
 ## 参与贡献
 
-参见[贡献指南](https://github.com/charmbracelet/crush?tab=contributing-ov-file#contributing)。
+本仓库是上游 [Crush](https://github.com/charmbracelet/crush) 项目的 fork。不属于本 fork 特有的改进，建议直接贡献到上游，参见[上游贡献指南](https://github.com/charmbracelet/crush?tab=contributing-ov-file#contributing)。fork 特有的改动可通过向本仓库提交 PR 提出。
 
 ## 你的想法？
 
@@ -937,11 +943,11 @@ Crush 还遵循 [`DO_NOT_TRACK`](https://donottrack.sh/) 约定，可通过 `exp
 
 ## 许可证
 
-[FSL-1.1-MIT](https://github.com/charmbracelet/crush/raw/main/LICENSE.md)
+[FSL-1.1-MIT](https://github.com/f69wrthhqd-blip/crush/raw/main/LICENSE.md)
 
 ---
 
-[Charm](https://charm.land) 的一部分。
+[Crush](https://github.com/charmbracelet/crush) 的 fork，原项目为 [Charm](https://charm.land) 出品的终端 AI 编程助手。上游仓库：[charmbracelet/crush](https://github.com/charmbracelet/crush)。
 
 <a href="https://charm.land/"><img alt="The Charm logo" width="400" src="https://stuff.charm.sh/charm-banner-softy.jpg" /></a>
 
