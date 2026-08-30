@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"sync"
+	"testing"
 	"time"
 
 	"github.com/charmbracelet/crush/internal/version"
@@ -25,6 +27,9 @@ const (
 
 var (
 	client posthog.Client
+	// initOnce guards Init so a repeated call cannot create a second
+	// client and leak the first one's buffered events.
+	initOnce sync.Once
 
 	baseProps = posthog.NewProperties().
 			Set("GOOS", runtime.GOOS).
@@ -51,17 +56,24 @@ func SetContinueLastSession(continueLastSession bool) {
 	baseProps = baseProps.Set(continueLastSessionAttrName, continueLastSession)
 }
 
+// Init initializes the telemetry client. It is a no-op under go test so
+// test binaries never report telemetry, and repeated calls are no-ops.
 func Init() {
-	c, err := posthog.NewWithConfig(key, posthog.Config{
-		Endpoint:        endpoint,
-		Logger:          logger{},
-		ShutdownTimeout: 500 * time.Millisecond,
+	initOnce.Do(func() {
+		if testing.Testing() {
+			return
+		}
+		c, err := posthog.NewWithConfig(key, posthog.Config{
+			Endpoint:        endpoint,
+			Logger:          logger{},
+			ShutdownTimeout: 500 * time.Millisecond,
+		})
+		if err != nil {
+			slog.Error("Failed to initialize PostHog client", "error", err)
+		}
+		client = c
+		distinctId = getDistinctId()
 	})
-	if err != nil {
-		slog.Error("Failed to initialize PostHog client", "error", err)
-	}
-	client = c
-	distinctId = getDistinctId()
 }
 
 func GetID() string { return distinctId }

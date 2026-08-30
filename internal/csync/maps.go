@@ -94,8 +94,14 @@ func (m *Map[K, V]) Len() int {
 	return len(m.inner)
 }
 
-// GetOrSet gets and returns the key if it exists, otherwise, it executes the
-// given function, set its return value for the given key, and returns it.
+// GetOrSet gets and returns the value for the given key if it exists,
+// otherwise, it executes the given function, sets its return value for the
+// given key, and returns it.
+//
+// This is not an atomic load-or-store: the get and the set are separately
+// locked, so under concurrent calls for the same missing key, fn may run
+// multiple times and the last write wins. Callers that need exactly-once
+// execution must synchronize externally (or accept the redundant work).
 func (m *Map[K, V]) GetOrSet(key K, fn func() V) V {
 	got, ok := m.Get(key)
 	if ok {
