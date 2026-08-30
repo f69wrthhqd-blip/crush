@@ -61,6 +61,10 @@ type BackgroundShell struct {
 
 // BackgroundShellManager manages background shell instances.
 type BackgroundShellManager struct {
+	// mu serialises Start against the job-limit check and KillAll's
+	// snapshot, so concurrent Starts cannot exceed MaxBackgroundJobs and
+	// jobs started during KillAll cannot escape termination.
+	mu     sync.Mutex
 	shells *csync.Map[string, *BackgroundShell]
 }
 
@@ -87,6 +91,9 @@ func GetBackgroundShellManager() *BackgroundShellManager {
 
 // Start creates and starts a new background shell with the given command.
 func (m *BackgroundShellManager) Start(ctx context.Context, workingDir string, blockFuncs []BlockFunc, command string, description string) (*BackgroundShell, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	// Check job limit
 	if m.shells.Len() >= MaxBackgroundJobs {
 		return nil, fmt.Errorf("maximum number of background jobs (%d) reached. Please terminate or wait for some jobs to complete", MaxBackgroundJobs)
@@ -194,8 +201,10 @@ func (m *BackgroundShellManager) Cleanup() int {
 // KillAll terminates all background shells. The provided context bounds how
 // long the function waits for each shell to exit.
 func (m *BackgroundShellManager) KillAll(ctx context.Context) {
+	m.mu.Lock()
 	shells := slices.Collect(m.shells.Seq())
 	m.shells.Reset(map[string]*BackgroundShell{})
+	m.mu.Unlock()
 
 	var wg sync.WaitGroup
 	for _, shell := range shells {
