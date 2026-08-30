@@ -192,6 +192,11 @@ type sessionAgent struct {
 	messageQueue   *csync.Map[string, []SessionAgentCall]
 	activeRequests *csync.Map[string, *activeCancel]
 
+	// requestDone is signaled (without blocking) whenever an entry
+	// leaves activeRequests, so CancelAll can wait for quiescence
+	// without polling on a timer.
+	requestDone chan struct{}
+
 	// dispatchMu holds a per-session mutex that serializes the
 	// accepted -> (cancel-on-entry | queued | active) transition in
 	// Run against a concurrent Cancel. The lock is held only during
@@ -265,6 +270,7 @@ func NewSessionAgent(
 		runComplete:          opts.RunComplete,
 		messageQueue:         csync.NewMap[string, []SessionAgentCall](),
 		activeRequests:       csync.NewMap[string, *activeCancel](),
+		requestDone:          make(chan struct{}, 1),
 		dispatchMu:           csync.NewMap[string, *sync.Mutex](),
 		acceptedRuns:         csync.NewMap[string, int](),
 		cancelMark:           csync.NewMap[string, uint64](),
@@ -664,7 +670,11 @@ func (a *sessionAgent) Run(ctx context.Context, call SessionAgentCall) (result *
 	// by a newer run. Without this guard, the deferred Del fires after a
 	// concurrent run registers in the completion window, silently wiping
 	// the new run's cancel and breaking cancellation.
-	defer a.activeRequests.CompareAndDelete(call.SessionID, ac)
+	defer func() {
+		if a.activeRequests.CompareAndDelete(call.SessionID, ac) {
+			a.notifyRequestDone()
+		}
+	}()
 
 	// Copy mutable fields under lock to avoid races with SetTools/SetModels.
 	agentTools := a.tools.Copy()
@@ -1201,6 +1211,7 @@ func (a *sessionAgent) Run(ctx context.Context, call SessionAgentCall) (result *
 
 	if shouldSummarize {
 		a.activeRequests.Del(call.SessionID)
+		a.notifyRequestDone()
 		if summarizeErr := a.Summarize(genCtx, call.SessionID, call.ProviderOptions, call.OnAuthRefresh); summarizeErr != nil {
 			return nil, summarizeErr
 		}
@@ -1221,6 +1232,7 @@ func (a *sessionAgent) Run(ctx context.Context, call SessionAgentCall) (result *
 	// tea.Msg arrives, so the cleanup must precede the notify or
 	// subscribers see stale busy state at the moment of receipt.
 	a.activeRequests.Del(call.SessionID)
+	a.notifyRequestDone()
 	cancel()
 
 	// Send notification that agent has finished its turn (skip for
@@ -1474,6 +1486,7 @@ func (a *sessionAgent) Summarize(ctx context.Context, sessionID string, opts fan
 	// Release the active request before processing queued messages so that
 	// Run() does not see the session as busy.
 	a.activeRequests.Del(sessionID)
+	a.notifyRequestDone()
 	cancel()
 
 	// Process any messages that were queued while summarizing.
@@ -2085,14 +2098,26 @@ func (a *sessionAgent) CancelAll() {
 		a.Cancel(key) // key is sessionID
 	}
 
+	// Wait for the active requests to drain. Each removal from
+	// activeRequests signals requestDone, so this returns as soon as the
+	// last request finishes rather than on a fixed polling interval.
 	timeout := time.After(5 * time.Second)
 	for a.IsBusy() {
 		select {
 		case <-timeout:
 			return
-		default:
-			time.Sleep(200 * time.Millisecond)
+		case <-a.requestDone:
 		}
+	}
+}
+
+// notifyRequestDone records that an entry left activeRequests. It never
+// blocks: a single pending signal is enough because CancelAll re-checks
+// IsBusy after every wake.
+func (a *sessionAgent) notifyRequestDone() {
+	select {
+	case a.requestDone <- struct{}{}:
+	default:
 	}
 }
 
