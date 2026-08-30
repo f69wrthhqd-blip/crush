@@ -34,6 +34,8 @@ var (
 )
 
 func onceFor(code string) *sync.Once {
+	mu.Lock()
+	defer mu.Unlock()
 	if o, ok := catalogOnce[code]; ok {
 		return o
 	}
@@ -43,8 +45,7 @@ func onceFor(code string) *sync.Once {
 }
 
 func loadCatalog(code string) map[string]string {
-	catalogOnce[code] = onceFor(code)
-	once := catalogOnce[code]
+	once := onceFor(code)
 	once.Do(func() {
 		data, err := localesFS.ReadFile("locales/" + code + ".json")
 		if err != nil {
