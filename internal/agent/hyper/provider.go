@@ -71,8 +71,9 @@ func SetBalance(balance int) {
 // case Hyper reports the balance in dollars instead and there is no
 // hypercredit figure to show.
 func FetchCredits(ctx context.Context, apiKey string) (*int, error) {
-	if hasBalance.Load() {
-		hasBalance.Store(false)
+	// Consume the cached balance atomically so exactly one concurrent
+	// caller takes it; everyone else falls through to the HTTP lookup.
+	if hasBalance.CompareAndSwap(true, false) {
 		balance := int(lastKnownBalance.Load())
 		return &balance, nil
 	}
