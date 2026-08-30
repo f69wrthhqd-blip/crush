@@ -1418,7 +1418,7 @@ func (c *coordinator) optimizePromptConversation(ctx context.Context, sessionID 
 		if len(text) > optimizePromptMessageMaxLen {
 			text = text[:optimizePromptMessageMaxLen] + "…"
 		}
-		sb.WriteString(fmt.Sprintf("<%s>\n%s\n</%s>\n", msg.Role, text, msg.Role))
+		fmt.Fprintf(&sb, "<%s>\n%s\n</%s>\n", msg.Role, text, msg.Role)
 	}
 	sb.WriteString("</recent_conversation>")
 	return sb.String()
