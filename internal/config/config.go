@@ -276,7 +276,7 @@ type TUIOptions struct {
 	// Theme selects the UI color theme. When unset the theme follows the
 	// selected large model's provider. The known keys are the ones
 	// registered in internal/ui/styles.
-	Theme string `json:"theme,omitempty" jsonschema:"description=UI color theme. Unset follows the selected model's provider,enum=pantera,enum=catppuccin-mocha,enum=gruvbox-dark,enum=tokyonight,enum=nord,enum=dracula,enum=one-dark,enum=ayu-dark,enum=vesper,enum=catppuccin-latte,enum=solarized-light"`
+	Theme string `json:"theme,omitempty" jsonschema:"description=UI color theme. Unset follows the selected model's provider,enum=pantera,enum=catppuccin-mocha,enum=gruvbox-dark,enum=tokyonight,enum=nord,enum=dracula,enum=one-dark,enum=ayu-dark,enum=vesper,enum=rose-pine,enum=kanagawa,enum=everforest-dark,enum=solarized-dark,enum=monokai,enum=github-dark,enum=ayu-mirage,enum=night-owl,enum=catppuccin-latte,enum=rose-pine-dawn,enum=solarized-light,enum=github-light"`
 
 	Completions Completions `json:"completions,omitzero" jsonschema:"description=Completions UI options"`
 	Transparent *bool       `json:"transparent,omitempty" jsonschema:"description=Enable transparent background for the TUI interface,default=false"`

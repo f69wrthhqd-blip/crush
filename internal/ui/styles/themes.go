@@ -194,6 +194,78 @@ var (
 			},
 		},
 		{
+			Key:   "rose-pine",
+			Name:  "Rosé Pine",
+			Build: RosePine,
+			Swatches: []color.Color{
+				rpPrimary, rpSuccess, rpWarning,
+				rpError, rpBg,
+			},
+		},
+		{
+			Key:   "kanagawa",
+			Name:  "Kanagawa",
+			Build: Kanagawa,
+			Swatches: []color.Color{
+				kgPrimary, kgSuccess, kgWarning,
+				kgError, kgBg,
+			},
+		},
+		{
+			Key:   "everforest-dark",
+			Name:  "Everforest Dark",
+			Build: EverforestDark,
+			Swatches: []color.Color{
+				efPrimary, efSuccess, efWarning,
+				efError, efBg,
+			},
+		},
+		{
+			Key:   "solarized-dark",
+			Name:  "Solarized Dark",
+			Build: SolarizedDark,
+			Swatches: []color.Color{
+				sdPrimary, sdSuccess, sdWarning,
+				sdError, sdBg,
+			},
+		},
+		{
+			Key:   "monokai",
+			Name:  "Monokai Classic",
+			Build: Monokai,
+			Swatches: []color.Color{
+				mkPrimary, mkSuccess, mkWarning,
+				mkError, mkBg,
+			},
+		},
+		{
+			Key:   "github-dark",
+			Name:  "GitHub Dark",
+			Build: GitHubDark,
+			Swatches: []color.Color{
+				ghPrimary, ghSuccess, ghWarning,
+				ghError, ghBg,
+			},
+		},
+		{
+			Key:   "ayu-mirage",
+			Name:  "Ayu Mirage",
+			Build: AyuMirage,
+			Swatches: []color.Color{
+				amPrimary, amSuccess, amWarning,
+				amError, amBg,
+			},
+		},
+		{
+			Key:   "night-owl",
+			Name:  "Night Owl",
+			Build: NightOwl,
+			Swatches: []color.Color{
+				noPrimary, noSuccess, noWarning,
+				noError, noBg,
+			},
+		},
+		{
 			Key:   "catppuccin-latte",
 			Name:  "Catppuccin Latte",
 			Build: CatppuccinLatte,
@@ -213,6 +285,28 @@ var (
 			Swatches: []color.Color{
 				slPrimary, slSuccess, slWarning,
 				slError, slBg,
+			},
+		},
+		{
+			Key:   "rose-pine-dawn",
+			Name:  "Rosé Pine Dawn",
+			Build: RosePineDawn,
+			// Light theme: dark text on a light background.
+			IsLight: true,
+			Swatches: []color.Color{
+				rdPrimary, rdSuccess, rdWarning,
+				rdError, rdBg,
+			},
+		},
+		{
+			Key:   "github-light",
+			Name:  "GitHub Light",
+			Build: GitHubLight,
+			// Light theme: dark text on a light background.
+			IsLight: true,
+			Swatches: []color.Color{
+				glPrimary, glSuccess, glWarning,
+				glError, glBg,
 			},
 		},
 	}
@@ -826,6 +920,518 @@ func Vesper() Styles {
 	})
 }
 
+// Rosé Pine palette. https://rosépine.com
+var (
+	rpPrimary = css("#c4a7e7") // iris
+	rpSuccess = css("#31748f") // pine
+	rpWarning = css("#f6c177") // gold
+	rpError   = css("#eb6f92") // love
+	rpBg      = css("#191724") // base
+)
+
+// RosePine returns the Rosé Pine dark theme.
+func RosePine() Styles {
+	return quickStyle(quickStyleOpts{
+		primary:   rpPrimary,
+		secondary: css("#ebbcba"), // rose
+		accent:    css("#9ccfd8"), // foam
+		keyword:   rpError,
+
+		fgBase:       css("#e0def4"), // text
+		fgMoreSubtle: css("#6e6a86"), // muted
+		fgSubtle:     css("#908caa"), // subtle
+		fgMostSubtle: css("#4a4559"),
+
+		onPrimary: rpBg,
+
+		bgBase:         rpBg,
+		bgLeastVisible: css("#1f1d2e"), // surface
+		bgLessVisible:  css("#26233a"), // overlay
+		bgMostVisible:  css("#403d52"), // highlightMed
+
+		separator: css("#26233a"), // overlay
+
+		destructive:       rpError,
+		error:             rpError,
+		warningSubtle:     css("#ebbcba"), // rose
+		warning:           rpWarning,
+		attention:         css("#ebbcba"), // rose
+		busy:              css("#c4a7e7"), // iris
+		info:              css("#9ccfd8"), // foam
+		infoMoreSubtle:    css("#31748f"), // pine
+		infoMostSubtle:    css("#6e6a86"), // muted
+		success:           rpSuccess,
+		successMoreSubtle: css("#9ccfd8"), // foam
+		successMostSubtle: css("#2a5a68"),
+
+		ansiBlack:   css("#26233a"), // overlay
+		ansiRed:     css("#eb6f92"),
+		ansiGreen:   css("#31748f"),
+		ansiYellow:  css("#f6c177"),
+		ansiBlue:    css("#9ccfd8"),
+		ansiMagenta: css("#c4a7e7"),
+		ansiCyan:    css("#ebbcba"),
+		ansiWhite:   css("#e0def4"), // text
+
+		ansiBrightBlack:   css("#6e6a86"), // muted
+		ansiBrightRed:     css("#eb6f92"),
+		ansiBrightGreen:   css("#31748f"),
+		ansiBrightYellow:  css("#f6c177"),
+		ansiBrightBlue:    css("#9ccfd8"),
+		ansiBrightMagenta: css("#c4a7e7"),
+		ansiBrightCyan:    css("#ebbcba"),
+		ansiBrightWhite:   css("#e0def4"), // text
+	})
+}
+
+// Kanagawa palette. https://github.com/rebelot/kanagawa.nvim
+var (
+	kgPrimary = css("#7e9cd8") // crystalBlue
+	kgSuccess = css("#98bb6c") // springGreen
+	kgWarning = css("#e6c384") // carpYellow
+	kgError   = css("#e82424") // samuraiRed
+	kgBg      = css("#1f1f28") // sumiInk1
+)
+
+// Kanagawa returns the Kanagawa dark theme.
+func Kanagawa() Styles {
+	return quickStyle(quickStyleOpts{
+		primary:   kgPrimary,
+		secondary: css("#957fb8"), // oniViolet
+		accent:    css("#7aa89f"), // waveAqua2
+		keyword:   css("#d27e99"), // sakuraPink
+
+		fgBase:       css("#dcd7ba"), // fujiWhite
+		fgMoreSubtle: css("#727169"), // fujiGray
+		fgSubtle:     css("#c8c093"), // oldWhite
+		fgMostSubtle: css("#54546d"), // sumiInk4
+
+		onPrimary: kgBg,
+
+		bgBase:         kgBg,
+		bgLeastVisible: css("#16161d"), // sumiInk0
+		bgLessVisible:  css("#2a2a37"), // sumiInk2
+		bgMostVisible:  css("#363646"), // sumiInk3
+
+		separator: css("#2a2a37"), // sumiInk2
+
+		destructive:       css("#ff9e3b"), // roninYellow
+		error:             kgError,
+		warningSubtle:     css("#dca561"), // autumnYellow
+		warning:           kgWarning,
+		attention:         css("#ff9e3b"), // roninYellow
+		busy:              css("#dca561"), // autumnYellow
+		info:              css("#7fb4ca"), // springBlue
+		infoMoreSubtle:    css("#658594"), // dragonBlue
+		infoMostSubtle:    css("#7aa89f"), // waveAqua2
+		success:           kgSuccess,
+		successMoreSubtle: css("#76946a"), // autumnGreen
+		successMostSubtle: css("#6a9589"), // waveAqua1
+
+		ansiBlack:   css("#16161d"), // sumiInk0
+		ansiRed:     css("#c34043"), // autumnRed
+		ansiGreen:   css("#76946a"), // autumnGreen
+		ansiYellow:  css("#c0a36e"),
+		ansiBlue:    css("#7e9cd8"),
+		ansiMagenta: css("#957fb8"),
+		ansiCyan:    css("#6a9589"), // waveAqua1
+		ansiWhite:   css("#c8c093"), // oldWhite
+
+		ansiBrightBlack:   css("#727169"), // fujiGray
+		ansiBrightRed:     css("#e82424"), // samuraiRed
+		ansiBrightGreen:   css("#98bb6c"), // springGreen
+		ansiBrightYellow:  css("#e6c384"), // carpYellow
+		ansiBrightBlue:    css("#7fb4ca"), // springBlue
+		ansiBrightMagenta: css("#938aa9"), // springViolet1
+		ansiBrightCyan:    css("#7aa89f"), // waveAqua2
+		ansiBrightWhite:   css("#dcd7ba"), // fujiWhite
+	})
+}
+
+// Everforest Dark palette. https://github.com/sainnhe/everforest
+var (
+	efPrimary = css("#a7c080") // green
+	efSuccess = css("#a7c080") // green
+	efWarning = css("#dbbc7f") // yellow
+	efError   = css("#e67e80") // red
+	efBg      = css("#2d353b") // bg0
+)
+
+// EverforestDark returns the Everforest dark theme.
+func EverforestDark() Styles {
+	return quickStyle(quickStyleOpts{
+		primary:   efPrimary,
+		secondary: css("#7fbbb3"), // blue
+		accent:    css("#83c092"), // aqua
+		keyword:   css("#d699b6"), // purple
+
+		fgBase:       css("#d3c6aa"), // fg
+		fgMoreSubtle: css("#859289"), // grey1
+		fgSubtle:     css("#9da9a0"), // grey2
+		fgMostSubtle: css("#7a8478"), // grey0
+
+		onPrimary: efBg,
+
+		bgBase:         efBg,
+		bgLeastVisible: css("#232a2e"), // bg_dim
+		bgLessVisible:  css("#343f44"), // bg1
+		bgMostVisible:  css("#3d484d"), // bg2
+
+		separator: css("#343f44"), // bg1
+
+		destructive:       css("#e69875"), // orange
+		error:             efError,
+		warningSubtle:     css("#e69875"), // orange
+		warning:           efWarning,
+		attention:         css("#e69875"), // orange
+		busy:              efWarning,
+		info:              css("#7fbbb3"), // blue
+		infoMoreSubtle:    css("#83c092"), // aqua
+		infoMostSubtle:    css("#658594"),
+		success:           efSuccess,
+		successMoreSubtle: css("#83c092"), // aqua
+		successMostSubtle: css("#6b7f5e"),
+
+		ansiBlack:   css("#475258"), // bg3
+		ansiRed:     css("#e67e80"),
+		ansiGreen:   css("#a7c080"),
+		ansiYellow:  css("#dbbc7f"),
+		ansiBlue:    css("#7fbbb3"),
+		ansiMagenta: css("#d699b6"),
+		ansiCyan:    css("#83c092"),
+		ansiWhite:   css("#9da9a0"), // grey2
+
+		ansiBrightBlack:   css("#859289"), // grey1
+		ansiBrightRed:     css("#e67e80"),
+		ansiBrightGreen:   css("#a7c080"),
+		ansiBrightYellow:  css("#dbbc7f"),
+		ansiBrightBlue:    css("#7fbbb3"),
+		ansiBrightMagenta: css("#d699b6"),
+		ansiBrightCyan:    css("#83c092"),
+		ansiBrightWhite:   css("#d3c6aa"), // fg
+	})
+}
+
+// Solarized Dark palette. https://ethanschoonover.com/solarized/
+var (
+	sdPrimary = css("#268bd2") // blue
+	sdSuccess = css("#859900") // green
+	sdWarning = css("#b58900") // yellow
+	sdError   = css("#dc322f") // red
+	sdBg      = css("#002b36") // base03
+)
+
+// SolarizedDark returns the Solarized dark theme.
+func SolarizedDark() Styles {
+	return quickStyle(quickStyleOpts{
+		primary:   sdPrimary,
+		secondary: css("#d33682"), // magenta
+		accent:    css("#2aa198"), // cyan
+		keyword:   css("#6c71c4"), // violet
+
+		fgBase:       css("#93a1a1"), // base1
+		fgMoreSubtle: css("#657b83"), // base00
+		fgSubtle:     css("#839496"), // base0
+		fgMostSubtle: css("#586e75"), // base01
+
+		onPrimary: sdBg,
+
+		bgBase:         sdBg,
+		bgLeastVisible: css("#012029"),
+		bgLessVisible:  css("#073642"), // base02
+		bgMostVisible:  css("#0d4a5b"),
+
+		separator: css("#073642"), // base02
+
+		destructive:       css("#cb4b16"), // orange
+		error:             sdError,
+		warningSubtle:     css("#cb4b16"), // orange
+		warning:           sdWarning,
+		attention:         css("#cb4b16"), // orange
+		busy:              sdSuccess,
+		info:              css("#2aa198"), // cyan
+		infoMoreSubtle:    sdPrimary,
+		infoMostSubtle:    css("#586e75"), // base01
+		success:           sdSuccess,
+		successMoreSubtle: css("#2aa198"), // cyan
+		successMostSubtle: css("#586e28"),
+
+		ansiBlack:   css("#073642"), // base02
+		ansiRed:     css("#dc322f"),
+		ansiGreen:   css("#859900"),
+		ansiYellow:  css("#b58900"),
+		ansiBlue:    css("#268bd2"),
+		ansiMagenta: css("#d33682"),
+		ansiCyan:    css("#2aa198"),
+		ansiWhite:   css("#93a1a1"), // base1
+
+		ansiBrightBlack:   css("#586e75"), // base01
+		ansiBrightRed:     css("#cb4b16"), // orange
+		ansiBrightGreen:   css("#859900"),
+		ansiBrightYellow:  css("#b58900"),
+		ansiBrightBlue:    css("#268bd2"),
+		ansiBrightMagenta: css("#d33682"),
+		ansiBrightCyan:    css("#2aa198"),
+		ansiBrightWhite:   css("#fdf6e3"), // base3
+	})
+}
+
+// Monokai palette. https://www.monokai.pro
+var (
+	mkPrimary = css("#f92672") // pink
+	mkSuccess = css("#a6e22e") // green
+	mkWarning = css("#e6db74") // yellow
+	mkError   = css("#f92672") // pink
+	mkBg      = css("#272822") // background
+)
+
+// Monokai returns the classic Monokai dark theme.
+func Monokai() Styles {
+	return quickStyle(quickStyleOpts{
+		primary:   mkPrimary,
+		secondary: css("#66d9ef"), // cyan
+		accent:    mkSuccess,
+		keyword:   css("#ae81ff"), // purple
+
+		fgBase:       css("#f8f8f2"), // foreground
+		fgMoreSubtle: css("#75715e"), // comment
+		fgSubtle:     css("#c2c0b4"),
+		fgMostSubtle: css("#49483e"), // selection
+
+		onPrimary: mkBg,
+
+		bgBase:         mkBg,
+		bgLeastVisible: css("#1e1f1c"),
+		bgLessVisible:  css("#3e3d32"), // line
+		bgMostVisible:  css("#49483e"), // selection
+
+		separator: css("#3e3d32"), // line
+
+		destructive:       css("#fd971f"), // orange
+		error:             mkError,
+		warningSubtle:     css("#fd971f"), // orange
+		warning:           mkWarning,
+		attention:         css("#fd971f"), // orange
+		busy:              mkWarning,
+		info:              css("#66d9ef"), // cyan
+		infoMoreSubtle:    css("#8fdcef"),
+		infoMostSubtle:    css("#4db0c4"),
+		success:           mkSuccess,
+		successMoreSubtle: css("#c4f26a"),
+		successMostSubtle: css("#7cb200"),
+
+		ansiBlack:   css("#3e3d32"), // line
+		ansiRed:     css("#f92672"),
+		ansiGreen:   css("#a6e22e"),
+		ansiYellow:  css("#e6db74"),
+		ansiBlue:    css("#66d9ef"),
+		ansiMagenta: css("#ae81ff"),
+		ansiCyan:    css("#a1efe1"),
+		ansiWhite:   css("#f8f8f2"), // foreground
+
+		ansiBrightBlack:   css("#75715e"), // comment
+		ansiBrightRed:     css("#f92672"),
+		ansiBrightGreen:   css("#a6e22e"),
+		ansiBrightYellow:  css("#e6db74"),
+		ansiBrightBlue:    css("#66d9ef"),
+		ansiBrightMagenta: css("#ae81ff"),
+		ansiBrightCyan:    css("#a1efe1"),
+		ansiBrightWhite:   css("#ffffff"),
+	})
+}
+
+// GitHub Dark palette. https://github.com/primer/primitives
+var (
+	ghPrimary = css("#2f81f7") // accent blue
+	ghSuccess = css("#3fb950") // success green
+	ghWarning = css("#d29922") // attention yellow
+	ghError   = css("#f85149") // danger red
+	ghBg      = css("#0d1117") // canvas default
+)
+
+// GitHubDark returns the GitHub dark theme.
+func GitHubDark() Styles {
+	return quickStyle(quickStyleOpts{
+		primary:   ghPrimary,
+		secondary: css("#a371f7"), // done purple
+		accent:    ghSuccess,
+		keyword:   css("#ff7b72"),
+
+		fgBase:       css("#e6edf3"), // fg default
+		fgMoreSubtle: css("#7d8590"), // fg muted
+		fgSubtle:     css("#9198a1"),
+		fgMostSubtle: css("#6e7681"), // fg subtle
+
+		onPrimary: ghBg,
+
+		bgBase:         ghBg,
+		bgLeastVisible: css("#010409"), // canvas inset
+		bgLessVisible:  css("#161b22"), // canvas subtle
+		bgMostVisible:  css("#21262d"), // canvas overlay
+
+		separator: css("#30363d"), // border default
+
+		destructive:       css("#db6d28"), // severe orange
+		error:             ghError,
+		warningSubtle:     css("#db6d28"), // severe orange
+		warning:           ghWarning,
+		attention:         css("#db6d28"), // severe orange
+		busy:              ghWarning,
+		info:              css("#58a6ff"),
+		infoMoreSubtle:    css("#79c0ff"),
+		infoMostSubtle:    css("#1f6feb"), // accent emphasis
+		success:           ghSuccess,
+		successMoreSubtle: css("#7ee787"),
+		successMostSubtle: css("#238636"),
+
+		ansiBlack:   css("#484f58"),
+		ansiRed:     css("#ff7b72"),
+		ansiGreen:   css("#3fb950"),
+		ansiYellow:  css("#d29922"),
+		ansiBlue:    css("#58a6ff"),
+		ansiMagenta: css("#bc8cff"),
+		ansiCyan:    css("#39c5cf"),
+		ansiWhite:   css("#b6bec9"),
+
+		ansiBrightBlack:   css("#6e7681"), // fg subtle
+		ansiBrightRed:     css("#ffa198"),
+		ansiBrightGreen:   css("#56d364"),
+		ansiBrightYellow:  css("#e3b341"),
+		ansiBrightBlue:    css("#79c0ff"),
+		ansiBrightMagenta: css("#d2a8ff"),
+		ansiBrightCyan:    css("#56d4dd"),
+		ansiBrightWhite:   css("#9ea7b3"),
+	})
+}
+
+// Ayu Mirage palette. https://github.com/ayu-theme/ayu-colors
+var (
+	amPrimary = css("#ffcc66") // accent yellow
+	amSuccess = css("#d5ff80") // string green
+	amWarning = css("#ffd173") // func yellow
+	amError   = css("#f07178") // tag red
+	amBg      = css("#1f2430") // background
+)
+
+// AyuMirage returns the Ayu Mirage dark theme.
+func AyuMirage() Styles {
+	return quickStyle(quickStyleOpts{
+		primary:   amPrimary,
+		secondary: css("#73d0ff"), // tag cyan
+		accent:    amSuccess,
+		keyword:   css("#d2a6ff"), // constant purple
+
+		fgBase:       css("#cbccc6"), // foreground
+		fgMoreSubtle: css("#5c6773"), // comment
+		fgSubtle:     css("#a6a9b0"),
+		fgMostSubtle: css("#454e5a"),
+
+		onPrimary: amBg,
+
+		bgBase:         amBg,
+		bgLeastVisible: css("#171b24"), // line
+		bgLessVisible:  css("#242936"), // panel
+		bgMostVisible:  css("#34455a"), // selection
+
+		separator: css("#242936"), // panel
+
+		destructive:       css("#f29668"), // operator orange
+		error:             amError,
+		warningSubtle:     amPrimary,
+		warning:           amWarning,
+		attention:         css("#f29668"), // operator orange
+		busy:              amWarning,
+		info:              css("#73d0ff"), // tag cyan
+		infoMoreSubtle:    css("#95e6cb"),
+		infoMostSubtle:    css("#4090b8"),
+		success:           amSuccess,
+		successMoreSubtle: css("#b8cc52"),
+		successMostSubtle: css("#7cb335"),
+
+		ansiBlack:   css("#2a2f3d"),
+		ansiRed:     css("#f07178"),
+		ansiGreen:   css("#b8cc52"),
+		ansiYellow:  css("#ffcc66"),
+		ansiBlue:    css("#73d0ff"),
+		ansiMagenta: css("#d2a6ff"),
+		ansiCyan:    css("#95e6cb"),
+		ansiWhite:   css("#cbccc6"), // foreground
+
+		ansiBrightBlack:   css("#454e5a"),
+		ansiBrightRed:     css("#ff3333"), // error
+		ansiBrightGreen:   css("#d5ff80"),
+		ansiBrightYellow:  css("#ffd173"), // func
+		ansiBrightBlue:    css("#87d7ff"),
+		ansiBrightMagenta: css("#d2a6ff"),
+		ansiBrightCyan:    css("#95e6cb"),
+		ansiBrightWhite:   css("#ffffff"),
+	})
+}
+
+// Night Owl palette. https://github.com/sdras/night-owl-vscode-theme
+var (
+	noPrimary = css("#82aaff") // blue
+	noSuccess = css("#addb67") // green
+	noWarning = css("#ffcb8b") // yellow
+	noError   = css("#ef5350") // red
+	noBg      = css("#011627") // background
+)
+
+// NightOwl returns the Night Owl dark theme.
+func NightOwl() Styles {
+	return quickStyle(quickStyleOpts{
+		primary:   noPrimary,
+		secondary: css("#c792ea"), // purple
+		accent:    css("#7fdbca"), // cyan
+		keyword:   css("#c792ea"), // purple
+
+		fgBase:       css("#d6deeb"), // foreground
+		fgMoreSubtle: css("#5f7e97"), // comment
+		fgSubtle:     css("#8badc1"),
+		fgMostSubtle: css("#44596b"),
+
+		onPrimary: noBg,
+
+		bgBase:         noBg,
+		bgLeastVisible: css("#011021"),
+		bgLessVisible:  css("#0b2942"),
+		bgMostVisible:  css("#1d3b53"), // selection
+
+		separator: css("#0b2942"),
+
+		destructive:       css("#f78c6c"), // orange
+		error:             noError,
+		warningSubtle:     css("#f78c6c"), // orange
+		warning:           noWarning,
+		attention:         css("#f78c6c"), // orange
+		busy:              noWarning,
+		info:              css("#7fdbca"), // cyan
+		infoMoreSubtle:    css("#69c6d4"),
+		infoMostSubtle:    css("#5f7e97"), // comment
+		success:           noSuccess,
+		successMoreSubtle: css("#c3f584"),
+		successMostSubtle: css("#7ea54d"),
+
+		ansiBlack:   css("#122d42"),
+		ansiRed:     css("#ef5350"),
+		ansiGreen:   css("#addb67"),
+		ansiYellow:  css("#ffcb8b"),
+		ansiBlue:    css("#82aaff"),
+		ansiMagenta: css("#c792ea"),
+		ansiCyan:    css("#7fdbca"),
+		ansiWhite:   css("#d6deeb"), // foreground
+
+		ansiBrightBlack:   css("#5f7e97"), // comment
+		ansiBrightRed:     css("#ef5350"),
+		ansiBrightGreen:   css("#addb67"),
+		ansiBrightYellow:  css("#ffcb8b"),
+		ansiBrightBlue:    css("#82aaff"),
+		ansiBrightMagenta: css("#c792ea"),
+		ansiBrightCyan:    css("#7fdbca"),
+		ansiBrightWhite:   css("#ffffff"),
+	})
+}
+
 // Catppuccin Latte palette (light). https://github.com/catppuccin/catppuccin
 var (
 	cpLattePrimary = css("#8839ef") // mauve
@@ -963,5 +1569,143 @@ func SolarizedLight() Styles {
 		ansiBrightMagenta: css("#d33682"),
 		ansiBrightCyan:    css("#2aa198"),
 		ansiBrightWhite:   css("#839496"), // base0
+	})
+}
+
+// Rosé Pine Dawn palette (light). https://rosépine.com
+var (
+	rdPrimary = css("#907aa9") // iris
+	rdSuccess = css("#56949f") // foam
+	rdWarning = css("#ea9d34") // gold
+	rdError   = css("#b4637a") // love
+	rdBg      = css("#faf4ed") // base
+)
+
+// RosePineDawn returns the Rosé Pine Dawn light theme.
+func RosePineDawn() Styles {
+	return quickStyle(quickStyleOpts{
+		primary:   rdPrimary,
+		secondary: css("#d7827e"), // rose
+		accent:    css("#286983"), // pine
+		keyword:   rdError,
+
+		fgBase:       css("#575279"), // text
+		fgMoreSubtle: css("#9893a5"), // muted
+		fgSubtle:     css("#797593"), // subtle
+		fgMostSubtle: css("#b5aeb2"),
+
+		onPrimary: rdBg,
+
+		// On a light background, visibility comes from darker shades, so
+		// the bg ramp runs from closest-to-base (least visible) to the
+		// darkest surface (most visible).
+		bgBase:         rdBg,
+		bgLeastVisible: css("#fffaf3"), // surface
+		bgLessVisible:  css("#f2e9e1"), // overlay
+		bgMostVisible:  css("#dfdad9"), // highlightMed
+
+		separator: css("#f2e9e1"), // overlay
+
+		destructive:       css("#d7827e"), // rose
+		error:             rdError,
+		warningSubtle:     css("#d7827e"), // rose
+		warning:           rdWarning,
+		attention:         css("#ea9d34"), // gold
+		busy:              css("#56949f"), // foam
+		info:              css("#286983"), // pine
+		infoMoreSubtle:    css("#56949f"), // foam
+		infoMostSubtle:    css("#907aa9"), // iris
+		success:           rdSuccess,
+		successMoreSubtle: css("#286983"), // pine
+		successMostSubtle: css("#8f9d77"),
+
+		// The ANSI palette maps to the darker Dawn tones so raw terminal
+		// output stays legible on the light background.
+		ansiBlack:   css("#797593"), // subtle
+		ansiRed:     css("#b4637a"),
+		ansiGreen:   css("#286983"), // pine
+		ansiYellow:  css("#ea9d34"),
+		ansiBlue:    css("#56949f"), // foam
+		ansiMagenta: css("#907aa9"), // iris
+		ansiCyan:    css("#d7827e"), // rose
+		ansiWhite:   css("#a5a0ad"),
+
+		ansiBrightBlack:   css("#9893a5"), // muted
+		ansiBrightRed:     css("#b4637a"),
+		ansiBrightGreen:   css("#286983"),
+		ansiBrightYellow:  css("#ea9d34"),
+		ansiBrightBlue:    css("#56949f"),
+		ansiBrightMagenta: css("#907aa9"),
+		ansiBrightCyan:    css("#d7827e"),
+		ansiBrightWhite:   css("#817e8f"),
+	})
+}
+
+// GitHub Light palette. https://github.com/primer/primitives
+var (
+	glPrimary = css("#0969da") // accent blue
+	glSuccess = css("#1a7f37") // success green
+	glWarning = css("#9a6700") // attention yellow
+	glError   = css("#cf222e") // danger red
+	glBg      = css("#ffffff") // canvas default
+)
+
+// GitHubLight returns the GitHub light theme.
+func GitHubLight() Styles {
+	return quickStyle(quickStyleOpts{
+		primary:   glPrimary,
+		secondary: css("#8250df"), // done purple
+		accent:    glSuccess,
+		keyword:   glError,
+
+		fgBase:       css("#1f2328"), // fg default
+		fgMoreSubtle: css("#59636e"), // fg muted
+		fgSubtle:     css("#424a53"),
+		fgMostSubtle: css("#818b98"), // fg subtle
+
+		onPrimary: glBg,
+
+		// On a light background, visibility comes from darker shades, so
+		// the bg ramp runs from closest-to-base (least visible) to the
+		// darkest surface (most visible).
+		bgBase:         glBg,
+		bgLeastVisible: css("#f6f8fa"), // canvas subtle
+		bgLessVisible:  css("#eaeef2"),
+		bgMostVisible:  css("#d0d7de"), // border default
+
+		separator: css("#d0d7de"), // border default
+
+		destructive:       css("#bc4c00"), // severe orange
+		error:             glError,
+		warningSubtle:     css("#bc4c00"), // severe orange
+		warning:           glWarning,
+		attention:         css("#bc4c00"), // severe orange
+		busy:              glWarning,
+		info:              css("#0550ae"),
+		infoMoreSubtle:    css("#218bff"),
+		infoMostSubtle:    css("#6e7781"), // fg subtle
+		success:           glSuccess,
+		successMoreSubtle: css("#116329"),
+		successMostSubtle: css("#5a9a42"),
+
+		// The ANSI palette maps to the darker GitHub Light tones so raw
+		// terminal output stays legible on the light background.
+		ansiBlack:   css("#24292f"),
+		ansiRed:     css("#cf222e"),
+		ansiGreen:   css("#116329"),
+		ansiYellow:  css("#9a6700"),
+		ansiBlue:    css("#0550ae"),
+		ansiMagenta: css("#8250df"),
+		ansiCyan:    css("#1b7c83"),
+		ansiWhite:   css("#6e7781"), // fg subtle
+
+		ansiBrightBlack:   css("#57606a"),
+		ansiBrightRed:     css("#a40e26"),
+		ansiBrightGreen:   css("#1a7f37"),
+		ansiBrightYellow:  css("#bf8700"),
+		ansiBrightBlue:    css("#0969da"),
+		ansiBrightMagenta: css("#6639ba"),
+		ansiBrightCyan:    css("#3183bf"),
+		ansiBrightWhite:   css("#8c959f"),
 	})
 }
