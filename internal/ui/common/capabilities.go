@@ -1,6 +1,7 @@
 package common
 
 import (
+	"image/color"
 	"slices"
 	"strings"
 
@@ -39,6 +40,10 @@ type Capabilities struct {
 	ReportFocusEvents bool
 	// OSC99Notifications indicates whether the terminal supports OSC 99 notifications.
 	OSC99Notifications bool
+	// TerminalBackground is the terminal's real background color as
+	// reported via OSC 11. It stays nil until the terminal answers the
+	// query, which not all terminals do.
+	TerminalBackground color.Color
 }
 
 // Update updates the capabilities based on the given message.
@@ -67,6 +72,8 @@ func (c *Capabilities) Update(msg any) {
 		case ansi.ModeFocusEvent:
 			c.ReportFocusEvents = modeSupported(m.Value)
 		}
+	case tea.BackgroundColorMsg:
+		c.TerminalBackground = m.Color
 	case uv.UnknownOscEvent:
 		if notification.DetectOSC99Support(string(m)) {
 			c.OSC99Notifications = true
@@ -101,6 +108,17 @@ func QueryCmd(env uv.Environ) tea.Cmd {
 // SupportsTrueColor returns true if the terminal supports true color.
 func (c Capabilities) SupportsTrueColor() bool {
 	return c.Profile == colorprofile.TrueColor
+}
+
+// TerminalBackgroundIsDark reports the direction of the terminal's real
+// background color. The boolean result is false when the terminal has
+// not answered an OSC 11 background query (or none was sent), in which
+// case the direction is unknown.
+func (c Capabilities) TerminalBackgroundIsDark() (isDark, known bool) {
+	if c.TerminalBackground == nil {
+		return false, false
+	}
+	return uv.BackgroundColorEvent{Color: c.TerminalBackground}.IsDark(), true
 }
 
 // SupportsKittyGraphics returns true if the terminal supports Kitty graphics.

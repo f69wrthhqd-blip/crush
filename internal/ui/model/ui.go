@@ -215,6 +215,10 @@ type UI struct {
 
 	isTransparent bool
 
+	// contrastWarned gates the one-time transparency contrast warning
+	// emitted once the terminal reports its real background color.
+	contrastWarned bool
+
 	// themeKey identifies the currently applied theme so applyTheme can
 	// skip the expensive style rebuild when switching to a provider that
 	// resolves to the same theme.
@@ -582,6 +586,10 @@ func (m *UI) Init() tea.Cmd {
 		cmds = append(cmds, cmd)
 	}
 	cmds = append(cmds, m.checkPendingMCPAuth())
+	// Query the terminal's real background color (OSC 11) so transparency
+	// contrast checks can compare it against the active theme. Terminals
+	// that do not answer simply never deliver the message.
+	cmds = append(cmds, tea.RequestBackgroundColor)
 	return tea.Batch(cmds...)
 }
 
@@ -754,6 +762,14 @@ func (m *UI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.notifyWindowFocused = true
 	case tea.BlurMsg:
 		m.notifyWindowFocused = false
+	case tea.BackgroundColorMsg:
+		// The terminal just reported its real background color. If the
+		// session started in a transparent state with a conflicting
+		// theme, warn once so the user knows why text looks wrong.
+		if m.themeContrastMismatch() && !m.contrastWarned {
+			m.contrastWarned = true
+			cmds = append(cmds, util.ReportWarn(fmt.Sprintf(i18n.T("status.theme_contrast_warning"), styles.ThemeName(m.themeKey))))
+		}
 	case pubsub.Event[notify.Notification]:
 		if cmd := m.handleAgentNotification(msg.Payload); cmd != nil {
 			cmds = append(cmds, cmd)
@@ -2028,11 +2044,18 @@ func (m *UI) handleDialogMsg(msg tea.Msg) tea.Cmd {
 				// The key guard makes this a no-op when the resolved
 				// theme did not actually change.
 				m.refreshTheme()
-				name := i18n.T("theme.auto")
-				if msg.Key != "" {
-					name = styles.ThemeName(msg.Key)
+				if m.themeContrastMismatch() {
+					// With transparency on, a theme of the opposite
+					// direction from the terminal's real background is
+					// illegible: warn instead of confirming the switch.
+					cmds = append(cmds, util.CmdHandler(util.NewInfoMsg(fmt.Sprintf(i18n.T("status.theme_contrast_warning"), styles.ThemeName(m.themeKey)))))
+				} else {
+					name := i18n.T("theme.auto")
+					if msg.Key != "" {
+						name = styles.ThemeName(msg.Key)
+					}
+					cmds = append(cmds, util.CmdHandler(util.NewInfoMsg(fmt.Sprintf(i18n.T("status.theme_changed"), name))))
 				}
-				cmds = append(cmds, util.CmdHandler(util.NewInfoMsg(fmt.Sprintf(i18n.T("status.theme_changed"), name))))
 			}
 		}
 		m.dialog.CloseDialog(dialog.ThemeID)
@@ -2125,6 +2148,12 @@ func (m *UI) handleDialogMsg(msg tea.Msg) tea.Cmd {
 			status := i18n.T("status.disabled")
 			if newValue {
 				status = i18n.T("status.enabled")
+			}
+			// Detect contrast synchronously with the toggle: enabling
+			// transparency with a theme of the opposite direction makes
+			// text illegible over the terminal's real background.
+			if newValue && m.themeContrastMismatch() {
+				return util.ReportWarn(fmt.Sprintf(i18n.T("status.theme_contrast_warning"), styles.ThemeName(m.themeKey)))()
 			}
 			return util.NewInfoMsg(fmt.Sprintf(i18n.T("status.transparent_background"), status))
 		})
@@ -4316,6 +4345,26 @@ func (m *UI) cacheSidebarLogo(width int) {
 	m.sidebarLogo = renderLogo(m.com.Styles, true, m.com.IsHyper(), width)
 }
 
+// themeContrastMismatch reports whether the active theme reads poorly
+// over a transparent background: a light theme on a dark terminal or a
+// dark theme on a light terminal inverts the contrast the palette was
+// designed for. It always reports false when transparency is off or the
+// terminal has not reported its background color via OSC 11.
+func (m *UI) themeContrastMismatch() bool {
+	if !m.isTransparent {
+		return false
+	}
+	termDark, known := m.caps.TerminalBackgroundIsDark()
+	if !known {
+		return false
+	}
+	themeLight, ok := styles.ThemeIsLight(m.themeKey)
+	if !ok {
+		return false
+	}
+	return themeLight == termDark
+}
+
 // refreshTheme re-resolves the active theme from the config and applies
 // it when it differs from the one already applied. A user-selected theme
 // (options.tui.theme) always wins; otherwise the theme follows the large
@@ -4760,7 +4809,14 @@ func (m *UI) openThemeDialog() tea.Cmd {
 		return nil
 	}
 
-	themeDialog := dialog.NewTheme(m.com)
+	// Pass the terminal's real background direction (when known) so the
+	// picker can flag themes that clash with transparency.
+	var termBgDark *bool
+	if dark, known := m.caps.TerminalBackgroundIsDark(); known {
+		termBgDark = &dark
+	}
+
+	themeDialog := dialog.NewTheme(m.com, termBgDark)
 	m.dialog.OpenDialog(themeDialog)
 	return nil
 }

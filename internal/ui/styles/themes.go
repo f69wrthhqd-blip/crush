@@ -19,6 +19,11 @@ type ThemeEntry struct {
 	// Swatches are representative accent colors rendered as preview
 	// chips in the theme picker. They mirror the palette of Build.
 	Swatches []color.Color
+	// IsLight marks themes designed for light terminal backgrounds.
+	// Dark themes leave this unset. The contrast checks use it to detect
+	// themes that become illegible over a transparent background of the
+	// opposite direction.
+	IsLight bool
 }
 
 // ThemeKeyForProvider returns a stable identifier for the theme
@@ -83,6 +88,17 @@ func ThemeName(key string) string {
 		return entry.Name
 	}
 	return key
+}
+
+// ThemeIsLight reports whether the theme registered under the given key
+// is designed for light terminal backgrounds. The second result is
+// false for unknown keys.
+func ThemeIsLight(key string) (isLight, known bool) {
+	entry, ok := themeRegistry[key]
+	if !ok {
+		return false, false
+	}
+	return entry.IsLight, true
 }
 
 // AvailableThemes returns the themes offered in the theme picker, in
@@ -181,6 +197,8 @@ var (
 			Key:   "catppuccin-latte",
 			Name:  "Catppuccin Latte",
 			Build: CatppuccinLatte,
+			// Light theme: dark text on a light background.
+			IsLight: true,
 			Swatches: []color.Color{
 				cpLattePrimary, cpLatteSuccess, cpLatteWarning,
 				cpLatteError, cpLatteBg,
@@ -190,6 +208,8 @@ var (
 			Key:   "solarized-light",
 			Name:  "Solarized Light",
 			Build: SolarizedLight,
+			// Light theme: dark text on a light background.
+			IsLight: true,
 			Swatches: []color.Color{
 				slPrimary, slSuccess, slWarning,
 				slError, slBg,

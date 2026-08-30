@@ -23,8 +23,15 @@ func TestAvailableThemes(t *testing.T) {
 
 		// Every listed theme must be resolvable through the registry and
 		// build without panicking.
-		_, ok := ThemeByKey(theme.Key)
+		s, ok := ThemeByKey(theme.Key)
 		require.True(t, ok, "theme %q missing from registry", theme.Key)
+
+		// The IsLight flag must agree with the palette's actual contrast
+		// direction so the transparency checks stay correct.
+		isLight, known := ThemeIsLight(theme.Key)
+		require.True(t, known)
+		require.Equal(t, isLight, luminance(s.Background) > luminance(s.TextInput.Focused.Text.GetForeground()),
+			"theme %q IsLight flag disagrees with its palette direction", theme.Key)
 	}
 
 	// The default theme must be part of the picker.

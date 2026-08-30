@@ -31,6 +31,11 @@ type Theme struct {
 	list  *list.FilterableList
 	input textinput.Model
 
+	// termBgDark carries the direction of the terminal's real background
+	// color when known (nil otherwise). It drives the low-contrast
+	// markers shown while transparency is enabled.
+	termBgDark *bool
+
 	keyMap struct {
 		Select   key.Binding
 		Next     key.Binding
@@ -47,10 +52,13 @@ type ThemeItem struct {
 	name      string
 	swatches  []color.Color
 	isCurrent bool
-	t         *styles.Styles
-	m         fuzzy.Match
-	cache     map[int]string
-	focused   bool
+	// contrastWarn marks themes whose palette direction conflicts with
+	// the terminal's real background while transparency is enabled.
+	contrastWarn bool
+	t            *styles.Styles
+	m            fuzzy.Match
+	cache        map[int]string
+	focused      bool
 }
 
 // Finished implements list.Item. Theme items are render-stable outside
@@ -64,9 +72,12 @@ var (
 	_ ListItem = (*ThemeItem)(nil)
 )
 
-// NewTheme creates a new theme picker dialog.
-func NewTheme(com *common.Common) *Theme {
-	l := &Theme{com: com}
+// NewTheme creates a new theme picker dialog. termBgDark carries the
+// direction of the terminal's real background color when known (nil
+// otherwise); it drives the low-contrast markers shown while
+// transparency is enabled.
+func NewTheme(com *common.Common, termBgDark *bool) *Theme {
+	l := &Theme{com: com, termBgDark: termBgDark}
 
 	h := help.New()
 	h.Styles = com.Styles.DialogHelpStyles()
@@ -229,11 +240,16 @@ func (l *Theme) FullHelp() [][]key.Binding {
 
 // setItems populates the theme list: an auto entry that follows the
 // large model's provider, then every registered theme. The item whose
-// key matches the configured theme is marked and preselected.
+// key matches the configured theme is marked and preselected. While
+// transparency is enabled, themes conflicting with the terminal's real
+// background direction are flagged so users can see why they would be
+// hard to read.
 func (l *Theme) setItems() {
 	current := ""
+	transparent := false
 	if cfg := l.com.Config(); cfg != nil {
 		current = cfg.TUITheme()
+		transparent = cfg.Options != nil && cfg.Options.TUI.IsTransparent()
 	}
 
 	items := make([]list.FilterableItem, 0, len(styles.AvailableThemes())+1)
@@ -255,6 +271,11 @@ func (l *Theme) setItems() {
 			swatches:  entry.Swatches,
 			isCurrent: entry.Key == current,
 			t:         l.com.Styles,
+		}
+		if transparent && l.termBgDark != nil && entry.IsLight == *l.termBgDark {
+			// Light theme over a dark terminal, or dark theme over a
+			// light terminal: the palette contrast inverts.
+			item.contrastWarn = true
 		}
 		items = append(items, item)
 		if entry.Key == current {
@@ -303,9 +324,17 @@ func (l *ThemeItem) SetMatch(m fuzzy.Match) {
 
 // Render returns the string representation of the theme item: the theme
 // name followed by a row of color swatches drawn in the theme's own
-// palette, plus a marker on the active entry.
+// palette, plus low-contrast and current markers when they apply.
 func (l *ThemeItem) Render(width int) string {
 	info := l.renderSwatches()
+	if l.contrastWarn {
+		if info != "" {
+			info += " "
+		}
+		// Rendered last so the segment's own color reset cannot drop the
+		// info-column color for anything that follows.
+		info += l.t.LSP.WarningDiagnostic.Render("⚠ " + i18n.T("theme.contrast_low"))
+	}
 	if l.isCurrent {
 		if info != "" {
 			info += " "
