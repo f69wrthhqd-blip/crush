@@ -1764,15 +1764,11 @@ func (c *coordinator) updateParentSessionCost(ctx context.Context, childSessionI
 		return fmt.Errorf("get child session: %w", err)
 	}
 
-	parentSession, err := c.sessions.Get(ctx, parentSessionID)
-	if err != nil {
-		return fmt.Errorf("get parent session: %w", err)
-	}
-
-	parentSession.Cost += childSession.Cost
-
-	if _, err := c.sessions.Save(ctx, parentSession); err != nil {
-		return fmt.Errorf("save parent session: %w", err)
+	// Increment only the cost column: a full-row Save here races with the
+	// todos tool and parallel agent tool calls on the parent session and
+	// can revert their column updates.
+	if err := c.sessions.AddSessionCost(ctx, parentSessionID, childSession.Cost); err != nil {
+		return fmt.Errorf("add parent session cost: %w", err)
 	}
 
 	return nil

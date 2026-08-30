@@ -72,6 +72,10 @@ type Service interface {
 	List(ctx context.Context) ([]Session, error)
 	Save(ctx context.Context, session Session) (Session, error)
 	UpdateTitleAndUsage(ctx context.Context, sessionID, title string, promptTokens, completionTokens int64, cost float64) error
+	UpdateTodos(ctx context.Context, sessionID string, todos []Todo) error
+	UpdateUsage(ctx context.Context, sessionID string, promptTokens, completionTokens int64, costDelta float64, estimated bool) error
+	UpdateSessionSummary(ctx context.Context, sessionID, summaryMessageID string, promptTokens, completionTokens int64, costDelta float64, estimated bool) error
+	AddSessionCost(ctx context.Context, sessionID string, costDelta float64) error
 	Rename(ctx context.Context, id string, title string) error
 	Delete(ctx context.Context, id string) error
 
@@ -234,6 +238,82 @@ func (s *service) UpdateTitleAndUsage(ctx context.Context, sessionID, title stri
 	}
 	s.publishSessionUpdate(ctx, sessionID)
 	return nil
+}
+
+// UpdateTodos persists only the todo list of a session atomically. This
+// avoids the fetch-modify-save pattern on the whole row, which can lose
+// concurrent updates to the todos column from parallel tool calls.
+func (s *service) UpdateTodos(ctx context.Context, sessionID string, todos []Todo) error {
+	todosJSON, err := marshalTodos(todos)
+	if err != nil {
+		return err
+	}
+	if err := s.q.UpdateSessionTodos(ctx, db.UpdateSessionTodosParams{
+		Todos: sql.NullString{String: todosJSON, Valid: todosJSON != ""},
+		ID:    sessionID,
+	}); err != nil {
+		return err
+	}
+	s.publishSessionUpdate(ctx, sessionID)
+	return nil
+}
+
+// UpdateUsage atomically updates the token counters and accumulates cost.
+// Zero token values leave the corresponding counter unchanged. The
+// in-memory estimated-usage marker is refreshed only when a value changed.
+func (s *service) UpdateUsage(ctx context.Context, sessionID string, promptTokens, completionTokens int64, costDelta float64, estimated bool) error {
+	if err := s.q.UpdateSessionUsage(ctx, db.UpdateSessionUsageParams{
+		PromptTokens:     nullInt64IfNonZero(promptTokens),
+		CompletionTokens: nullInt64IfNonZero(completionTokens),
+		Cost:             costDelta,
+		ID:               sessionID,
+	}); err != nil {
+		return err
+	}
+	if promptTokens != 0 || completionTokens != 0 || costDelta != 0 {
+		s.setEstimatedUsageState(sessionID, estimated)
+	}
+	s.publishSessionUpdate(ctx, sessionID)
+	return nil
+}
+
+// UpdateSessionSummary atomically records the summary message, resets the
+// token counters, and accumulates cost after summarization.
+func (s *service) UpdateSessionSummary(ctx context.Context, sessionID, summaryMessageID string, promptTokens, completionTokens int64, costDelta float64, estimated bool) error {
+	if err := s.q.UpdateSessionSummary(ctx, db.UpdateSessionSummaryParams{
+		SummaryMessageID: sql.NullString{String: summaryMessageID, Valid: summaryMessageID != ""},
+		PromptTokens:     promptTokens,
+		CompletionTokens: completionTokens,
+		Cost:             costDelta,
+		ID:               sessionID,
+	}); err != nil {
+		return err
+	}
+	s.setEstimatedUsageState(sessionID, estimated)
+	s.publishSessionUpdate(ctx, sessionID)
+	return nil
+}
+
+// AddSessionCost atomically adds a cost delta to a session, e.g. rolling
+// a task child session's cost up into its parent. Returns an error when
+// the session does not exist.
+func (s *service) AddSessionCost(ctx context.Context, sessionID string, costDelta float64) error {
+	rows, err := s.q.IncrementSessionCost(ctx, db.IncrementSessionCostParams{
+		Cost: costDelta,
+		ID:   sessionID,
+	})
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return fmt.Errorf("session %q not found", sessionID)
+	}
+	s.publishSessionUpdate(ctx, sessionID)
+	return nil
+}
+
+func nullInt64IfNonZero(v int64) sql.NullInt64 {
+	return sql.NullInt64{Int64: v, Valid: v != 0}
 }
 
 // Rename updates only the title of a session without touching updated_at or

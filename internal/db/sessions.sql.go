@@ -134,6 +134,26 @@ func (q *Queries) GetSessionByID(ctx context.Context, id string) (Session, error
 	return i, err
 }
 
+const incrementSessionCost = `-- name: IncrementSessionCost :execrows
+UPDATE sessions
+SET
+    cost = cost + ?
+WHERE id = ?
+`
+
+type IncrementSessionCostParams struct {
+	Cost float64 `json:"cost"`
+	ID   string  `json:"id"`
+}
+
+func (q *Queries) IncrementSessionCost(ctx context.Context, arg IncrementSessionCostParams) (int64, error) {
+	result, err := q.exec(ctx, q.incrementSessionCostStmt, incrementSessionCost, arg.Cost, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const listSessions = `-- name: ListSessions :many
 SELECT id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at, summary_message_id, todos
 FROM sessions
@@ -243,6 +263,35 @@ func (q *Queries) UpdateSession(ctx context.Context, arg UpdateSessionParams) (S
 	return i, err
 }
 
+const updateSessionSummary = `-- name: UpdateSessionSummary :exec
+UPDATE sessions
+SET
+    summary_message_id = ?,
+    prompt_tokens = ?,
+    completion_tokens = ?,
+    cost = cost + ?
+WHERE id = ?
+`
+
+type UpdateSessionSummaryParams struct {
+	SummaryMessageID sql.NullString `json:"summary_message_id"`
+	PromptTokens     int64          `json:"prompt_tokens"`
+	CompletionTokens int64          `json:"completion_tokens"`
+	Cost             float64        `json:"cost"`
+	ID               string         `json:"id"`
+}
+
+func (q *Queries) UpdateSessionSummary(ctx context.Context, arg UpdateSessionSummaryParams) error {
+	_, err := q.exec(ctx, q.updateSessionSummaryStmt, updateSessionSummary,
+		arg.SummaryMessageID,
+		arg.PromptTokens,
+		arg.CompletionTokens,
+		arg.Cost,
+		arg.ID,
+	)
+	return err
+}
+
 const updateSessionTitleAndUsage = `-- name: UpdateSessionTitleAndUsage :exec
 UPDATE sessions
 SET
@@ -265,6 +314,49 @@ type UpdateSessionTitleAndUsageParams struct {
 func (q *Queries) UpdateSessionTitleAndUsage(ctx context.Context, arg UpdateSessionTitleAndUsageParams) error {
 	_, err := q.exec(ctx, q.updateSessionTitleAndUsageStmt, updateSessionTitleAndUsage,
 		arg.Title,
+		arg.PromptTokens,
+		arg.CompletionTokens,
+		arg.Cost,
+		arg.ID,
+	)
+	return err
+}
+
+const updateSessionTodos = `-- name: UpdateSessionTodos :exec
+UPDATE sessions
+SET
+    todos = ?
+WHERE id = ?
+`
+
+type UpdateSessionTodosParams struct {
+	Todos sql.NullString `json:"todos"`
+	ID    string         `json:"id"`
+}
+
+func (q *Queries) UpdateSessionTodos(ctx context.Context, arg UpdateSessionTodosParams) error {
+	_, err := q.exec(ctx, q.updateSessionTodosStmt, updateSessionTodos, arg.Todos, arg.ID)
+	return err
+}
+
+const updateSessionUsage = `-- name: UpdateSessionUsage :exec
+UPDATE sessions
+SET
+    prompt_tokens = COALESCE(?1, prompt_tokens),
+    completion_tokens = COALESCE(?2, completion_tokens),
+    cost = cost + ?3
+WHERE id = ?4
+`
+
+type UpdateSessionUsageParams struct {
+	PromptTokens     sql.NullInt64 `json:"prompt_tokens"`
+	CompletionTokens sql.NullInt64 `json:"completion_tokens"`
+	Cost             float64       `json:"cost"`
+	ID               string        `json:"id"`
+}
+
+func (q *Queries) UpdateSessionUsage(ctx context.Context, arg UpdateSessionUsageParams) error {
+	_, err := q.exec(ctx, q.updateSessionUsageStmt, updateSessionUsage,
 		arg.PromptTokens,
 		arg.CompletionTokens,
 		arg.Cost,

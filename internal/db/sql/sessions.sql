@@ -63,6 +63,35 @@ SET
 WHERE id = ?;
 
 
+-- name: UpdateSessionTodos :exec
+UPDATE sessions
+SET
+    todos = ?
+WHERE id = ?;
+
+-- name: UpdateSessionUsage :exec
+UPDATE sessions
+SET
+    prompt_tokens = COALESCE(sqlc.narg('prompt_tokens'), prompt_tokens),
+    completion_tokens = COALESCE(sqlc.narg('completion_tokens'), completion_tokens),
+    cost = cost + sqlc.arg('cost')
+WHERE id = sqlc.arg('id');
+
+-- name: UpdateSessionSummary :exec
+UPDATE sessions
+SET
+    summary_message_id = ?,
+    prompt_tokens = ?,
+    completion_tokens = ?,
+    cost = cost + ?
+WHERE id = ?;
+
+-- name: IncrementSessionCost :execrows
+UPDATE sessions
+SET
+    cost = cost + ?
+WHERE id = ?;
+
 -- name: RenameSession :exec
 UPDATE sessions
 SET

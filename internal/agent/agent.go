@@ -97,6 +97,12 @@ type SessionAgentCall struct {
 	FrequencyPenalty *float64
 	PresencePenalty  *float64
 	NonInteractive   bool
+	// TodoNudges counts how many todo-completion nudges this call chain
+	// has already received. It caps the automatic end-of-turn
+	// continuation to a single nudge per submitted prompt so a model
+	// that keeps stopping with incomplete todos cannot loop forever at
+	// the user's expense.
+	TodoNudges int
 	// OnComplete, when non-nil, replaces the default RunComplete
 	// publish path: the inner Run hands the terminal payload to this
 	// callback instead of emitting it on the RunComplete broker. The
@@ -800,13 +806,18 @@ func (a *sessionAgent) Run(ctx context.Context, call SessionAgentCall) (result *
 		a.publishRunComplete(ctx, call, complete)
 	}()
 
-	history, files := a.preparePrompt(msgs, largeModel.CatwalkCfg.SupportsImages, call.Attachments...)
+	history, files := a.preparePrompt(msgs, largeModel.CatwalkCfg.SupportsImages, currentSession.Todos, call.Attachments...)
 
 	startTime := time.Now()
 	a.eventPromptSent(call.SessionID)
 
 	var stepMessages []fantasy.Message
 	var shouldSummarize bool
+	// Finish state of the final step, captured by OnStepFinish so the
+	// end-of-turn todo nudge can tell a natural stop apart from a cancel
+	// or a tool result that halted the turn.
+	var lastFinishReason message.FinishReason
+	var lastStepStopTurn bool
 	sanitizedToolCalls := make(map[string]bool)
 	// Don't send MaxOutputTokens if 0 — some providers (e.g. LM Studio) reject it
 	var maxOutputTokens *int64
@@ -1028,30 +1039,33 @@ func (a *sessionAgent) Run(ctx context.Context, call SessionAgentCall) (result *
 			// permission denial), the step ends on FinishReasonToolCalls but
 			// the model will not be called again. Treat it as the end of the
 			// turn so the UI can render the assistant footer.
+			lastStepStopTurn = false
 			if finishReason == message.FinishReasonToolUse {
 				for _, tr := range stepResult.Content.ToolResults() {
 					if tr.StopTurn {
 						finishReason = message.FinishReasonEndTurn
+						lastStepStopTurn = true
 						break
 					}
 				}
 			}
+			lastFinishReason = finishReason
 			currentAssistant.AddFinish(finishReason, "", "")
 			sessionLock.Lock()
 			defer sessionLock.Unlock()
 
-			updatedSession, getSessionErr := a.sessions.Get(ctx, call.SessionID)
+			// Persist usage with column-level updates: a full-row Save here
+			// would race with the todos tool and revert todo updates.
+			usage, estimated := fallbackStepUsage(stepMessages, stepResult)
+			if sessionErr := a.updateSessionUsage(ctx, largeModel, call.SessionID, usage, a.openrouterCost(stepResult.ProviderMetadata), estimated); sessionErr != nil {
+				return sessionErr
+			}
+			extractHyperCredits(stepResult.ProviderMetadata)
+			refreshedSession, getSessionErr := a.sessions.Get(ctx, call.SessionID)
 			if getSessionErr != nil {
 				return getSessionErr
 			}
-			usage, estimated := fallbackStepUsage(stepMessages, stepResult)
-			a.updateSessionUsage(largeModel, &updatedSession, usage, a.openrouterCost(stepResult.ProviderMetadata), estimated)
-			extractHyperCredits(stepResult.ProviderMetadata)
-			_, sessionErr := a.sessions.Save(ctx, updatedSession)
-			if sessionErr != nil {
-				return sessionErr
-			}
-			currentSession = updatedSession
+			currentSession = refreshedSession
 			return a.messages.Update(genCtx, *currentAssistant)
 		},
 		StopWhen: []fantasy.StopCondition{
@@ -1227,6 +1241,28 @@ func (a *sessionAgent) Run(ctx context.Context, call SessionAgentCall) (result *
 		}
 	}
 
+	// If the turn ended naturally with incomplete todos, enqueue one
+	// automatic continuation so the model finishes or closes out its
+	// list instead of leaving it stuck. Skipped for subagents and
+	// non-interactive runs, when the turn was interrupted for
+	// summarization (its continuation resumes the work), and when the
+	// user already queued follow-up prompts. Bounded by TodoNudges so
+	// a stubborn model cannot loop at the user's expense. A cancel
+	// recorded against the session drops the nudge with the rest of
+	// the queue (acceptSeq 0 is untracked).
+	if !a.isSubAgent && !call.NonInteractive && !shouldSummarize {
+		if _, hasQueued := a.messageQueue.Get(call.SessionID); !hasQueued {
+			if nudgePrompt, shouldNudge := todoNudgePrompt(currentSession.Todos, lastFinishReason, lastStepStopTurn, call.TodoNudges); shouldNudge {
+				nudge := call
+				nudge.Prompt = nudgePrompt
+				nudge.TodoNudges = call.TodoNudges + 1
+				nudge.Attachments = nil
+				nudge.OnComplete = nil
+				a.messageQueue.Set(call.SessionID, []SessionAgentCall{nudge})
+			}
+		}
+	}
+
 	// Release active request before publishing the notification.
 	// TUI handlers poll IsSessionBusy() and only re-evaluate when a
 	// tea.Msg arrives, so the cleanup must precede the notify or
@@ -1370,7 +1406,7 @@ func (a *sessionAgent) Summarize(ctx context.Context, sessionID string, opts fan
 		return nil
 	}
 
-	aiMsgs, _ := a.preparePrompt(msgs, largeModel.CatwalkCfg.SupportsImages)
+	aiMsgs, _ := a.preparePrompt(msgs, largeModel.CatwalkCfg.SupportsImages, currentSession.Todos)
 
 	genCtx, cancel := context.WithCancel(ctx)
 	ac := &activeCancel{cancel: cancel}
@@ -1470,16 +1506,11 @@ func (a *sessionAgent) Summarize(ctx context.Context, sessionID string, opts fan
 		extractHyperCredits(step.ProviderMetadata)
 	}
 
-	a.updateSessionUsage(largeModel, &currentSession, resp.TotalUsage, openrouterCost, false)
+	summaryCost := a.sessionUsageCost(largeModel, sessionID, resp.TotalUsage, openrouterCost, false)
 
 	// Just in case, get just the last usage info.
 	usage := resp.Response.Usage
-	currentSession.SummaryMessageID = summaryMessage.ID
-	currentSession.CompletionTokens = summaryCompletionTokens(usage, summaryMessage)
-	currentSession.PromptTokens = 0
-	currentSession.EstimatedUsage = usageIsZero(usage)
-	_, err = a.sessions.Save(genCtx, currentSession)
-	if err != nil {
+	if err := a.sessions.UpdateSessionSummary(genCtx, sessionID, summaryMessage.ID, 0, summaryCompletionTokens(usage, summaryMessage), summaryCost, usageIsZero(usage)); err != nil {
 		return err
 	}
 
@@ -1530,6 +1561,84 @@ func sessionHeaders(sessionID string) map[string]string {
 	}
 }
 
+// todoListReminder renders the per-turn system reminder for the todo
+// list. It always reflects the session's actual todo state: an empty
+// list invites creating one, while a non-empty list restates the real
+// progress so the model keeps working through it instead of assuming
+// the list is empty.
+func todoListReminder(todos []session.Todo) string {
+	if len(todos) == 0 {
+		return `This is a reminder that your todo list is currently empty. DO NOT mention this to the user explicitly because they are already aware.
+If you are working on tasks that would benefit from a todo list please use the "todos" tool to create one.
+If not, please feel free to ignore. Again do not mention this message to the user.`
+	}
+
+	var inProgress, pending []session.Todo
+	completed := 0
+	for _, todo := range todos {
+		switch todo.Status {
+		case session.TodoStatusInProgress:
+			inProgress = append(inProgress, todo)
+		case session.TodoStatusPending:
+			pending = append(pending, todo)
+		case session.TodoStatusCompleted:
+			completed++
+		}
+	}
+
+	var b strings.Builder
+	b.WriteString("This is a reminder of your current todo list. DO NOT mention this reminder to the user explicitly because they are already aware.\n")
+	fmt.Fprintf(&b, "Current progress: %d completed, %d in progress, %d pending.\n", completed, len(inProgress), len(pending))
+	if len(inProgress) > 0 {
+		b.WriteString("In progress:\n")
+		for _, todo := range inProgress {
+			fmt.Fprintf(&b, "- %s\n", todo.Content)
+		}
+	}
+	if len(pending) > 0 {
+		b.WriteString("Pending:\n")
+		for _, todo := range pending {
+			fmt.Fprintf(&b, "- %s\n", todo.Content)
+		}
+	}
+	b.WriteString(`Continue working through the in-progress and pending tasks. Keep the todo list up to date with the "todos" tool and mark tasks completed as you finish them. Do not respond to this reminder directly.`)
+	return b.String()
+}
+
+// todoNudgePrompt decides whether an ended turn should be continued
+// automatically and returns the continuation prompt. Nudges fire once
+// per submitted prompt when the turn ended naturally (no cancel, no
+// tool-result halt) while the session's todo list still has incomplete
+// items, so a model that stops early resumes instead of leaving the
+// list stuck mid-flight.
+func todoNudgePrompt(todos []session.Todo, finishReason message.FinishReason, stopTurn bool, nudgesSoFar int) (string, bool) {
+	if nudgesSoFar > 0 || stopTurn || finishReason != message.FinishReasonEndTurn {
+		return "", false
+	}
+	if !session.HasIncompleteTodos(todos) {
+		return "", false
+	}
+	var inProgress, pending []string
+	for _, todo := range todos {
+		switch todo.Status {
+		case session.TodoStatusInProgress:
+			inProgress = append(inProgress, todo.Content)
+		case session.TodoStatusPending:
+			pending = append(pending, todo.Content)
+		}
+	}
+	var b strings.Builder
+	b.WriteString("<system_reminder>Your turn ended while the todo list still has incomplete tasks. DO NOT respond to this reminder conversationally; act on it.\n")
+	if len(inProgress) > 0 {
+		b.WriteString("In progress: " + strings.Join(inProgress, "; ") + "\n")
+	}
+	if len(pending) > 0 {
+		b.WriteString("Pending: " + strings.Join(pending, "; ") + "\n")
+	}
+	b.WriteString(`Continue working on these tasks now. If a task is actually already done or no longer needed, update the todo list with the "todos" tool to reflect that.</system_reminder>`)
+	return b.String(), true
+}
+
 func (a *sessionAgent) createUserMessage(ctx context.Context, call SessionAgentCall) (message.Message, error) {
 	parts := []message.ContentPart{message.TextContent{Text: call.Prompt}}
 	var attachmentParts []message.ContentPart
@@ -1547,15 +1656,13 @@ func (a *sessionAgent) createUserMessage(ctx context.Context, call SessionAgentC
 	return msg, nil
 }
 
-func (a *sessionAgent) preparePrompt(msgs []message.Message, supportsImages bool, attachments ...message.Attachment) ([]fantasy.Message, []fantasy.FilePart) {
+func (a *sessionAgent) preparePrompt(msgs []message.Message, supportsImages bool, todos []session.Todo, attachments ...message.Attachment) ([]fantasy.Message, []fantasy.FilePart) {
 	var history []fantasy.Message
 	if !a.isSubAgent {
 		history = append(history, fantasy.NewUserMessage(
 			fmt.Sprintf(
 				"<system_reminder>%s</system_reminder>",
-				`This is a reminder that your todo list is currently empty. DO NOT mention this to the user explicitly because they are already aware.
-If you are working on tasks that would benefit from a todo list please use the "todos" tool to create one.
-If not, please feel free to ignore. Again do not mention this message to the user.`,
+				todoListReminder(todos),
 			),
 		))
 	}
@@ -1978,11 +2085,11 @@ func extractHyperCredits(metadata fantasy.ProviderMetadata) {
 	}
 }
 
-func (a *sessionAgent) updateSessionUsage(model Model, session *session.Session, usage fantasy.Usage, overrideCost *float64, estimated bool) {
-	if !usageIsZero(usage) {
-		session.EstimatedUsage = estimated
-	}
-
+// sessionUsageCost computes the cost of a usage record for the given
+// model, applying OpenRouter cost overrides and skipping accumulation for
+// estimated usage and flat rates. Fires the token-usage event for real
+// (non-estimated) usage.
+func (a *sessionAgent) sessionUsageCost(model Model, sessionID string, usage fantasy.Usage, overrideCost *float64, estimated bool) float64 {
 	modelConfig := model.CatwalkCfg
 	cost := modelConfig.CostPer1MInCached/1e6*float64(usage.CacheCreationTokens) +
 		modelConfig.CostPer1MOutCached/1e6*float64(usage.CacheReadTokens) +
@@ -1990,34 +2097,30 @@ func (a *sessionAgent) updateSessionUsage(model Model, session *session.Session,
 		modelConfig.CostPer1MOut/1e6*float64(usage.OutputTokens)
 
 	if !estimated {
-		a.eventTokensUsed(session.ID, model, usage, cost)
+		a.eventTokensUsed(sessionID, model, usage, cost)
 	}
 
 	if estimated {
-		cost = 0
-	} else {
-		// Use override cost if available (e.g., from OpenRouter).
-		if overrideCost != nil {
-			cost = *overrideCost
-		}
-
-		// Skip cost accumulation
-		if model.FlatRate {
-			cost = 0
-		}
+		return 0
 	}
-
-	session.Cost += cost
-	updateSessionTokenCounters(session, usage)
+	// Use override cost if available (e.g., from OpenRouter).
+	if overrideCost != nil {
+		return *overrideCost
+	}
+	// Skip cost accumulation.
+	if model.FlatRate {
+		return 0
+	}
+	return cost
 }
 
-func updateSessionTokenCounters(session *session.Session, usage fantasy.Usage) {
-	if usage.OutputTokens != 0 {
-		session.CompletionTokens = usage.OutputTokens
-	}
-	if promptTokens := usage.InputTokens + usage.CacheReadTokens; promptTokens != 0 {
-		session.PromptTokens = promptTokens
-	}
+// updateSessionUsage persists per-step usage with a column-level atomic
+// update so concurrent todos updates to the same session row are not
+// clobbered by a full-row save.
+func (a *sessionAgent) updateSessionUsage(ctx context.Context, model Model, sessionID string, usage fantasy.Usage, overrideCost *float64, estimated bool) error {
+	cost := a.sessionUsageCost(model, sessionID, usage, overrideCost, estimated)
+	promptTokens := usage.InputTokens + usage.CacheReadTokens
+	return a.sessions.UpdateUsage(ctx, sessionID, promptTokens, usage.OutputTokens, cost, estimated)
 }
 
 func summaryCompletionTokens(usage fantasy.Usage, summaryMessage message.Message) int64 {

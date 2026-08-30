@@ -43,6 +43,14 @@ func NewTodosTool(sessions session.Service) fantasy.AgentTool {
 				return fantasy.ToolResponse{}, fmt.Errorf("session ID is required for managing todos")
 			}
 
+			// An empty list would wipe all tracked progress. Malformed
+			// provider JSON is sanitized to "{}" before reaching this
+			// tool, so an empty list is almost always an accident, not
+			// intent. Reject it and ask for the full list instead.
+			if len(params.Todos) == 0 {
+				return fantasy.NewTextErrorResponse("Empty todo list rejected. Provide the complete list of todos with their statuses. If all tasks are done, mark them completed instead of sending an empty list."), nil
+			}
+
 			currentSession, err := sessions.Get(ctx, sessionID)
 			if err != nil {
 				return fantasy.ToolResponse{}, fmt.Errorf("failed to get session: %w", err)
@@ -95,9 +103,10 @@ func NewTodosTool(sessions session.Service) fantasy.AgentTool {
 				}
 			}
 
-			currentSession.Todos = todos
-			_, err = sessions.Save(ctx, currentSession)
-			if err != nil {
+			// Column-level atomic write: a full-row Save here would race
+			// with usage updates and parallel agent tool calls on the
+			// same session row.
+			if err := sessions.UpdateTodos(ctx, sessionID, todos); err != nil {
 				return fantasy.ToolResponse{}, fmt.Errorf("failed to save todos: %w", err)
 			}
 

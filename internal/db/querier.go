@@ -33,6 +33,7 @@ type Querier interface {
 	GetUsageByDayOfWeek(ctx context.Context) ([]GetUsageByDayOfWeekRow, error)
 	GetUsageByHour(ctx context.Context) ([]GetUsageByHourRow, error)
 	GetUsageByModel(ctx context.Context) ([]GetUsageByModelRow, error)
+	IncrementSessionCost(ctx context.Context, arg IncrementSessionCostParams) (int64, error)
 	ListAllUserMessages(ctx context.Context) ([]Message, error)
 	ListFilesByPath(ctx context.Context, path string) ([]File, error)
 	ListFilesBySession(ctx context.Context, sessionID string) ([]File, error)
@@ -46,7 +47,10 @@ type Querier interface {
 	RenameSession(ctx context.Context, arg RenameSessionParams) error
 	UpdateMessage(ctx context.Context, arg UpdateMessageParams) error
 	UpdateSession(ctx context.Context, arg UpdateSessionParams) (Session, error)
+	UpdateSessionSummary(ctx context.Context, arg UpdateSessionSummaryParams) error
 	UpdateSessionTitleAndUsage(ctx context.Context, arg UpdateSessionTitleAndUsageParams) error
+	UpdateSessionTodos(ctx context.Context, arg UpdateSessionTodosParams) error
+	UpdateSessionUsage(ctx context.Context, arg UpdateSessionUsageParams) error
 }
 
 var _ Querier = (*Queries)(nil)
