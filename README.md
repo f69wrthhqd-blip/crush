@@ -568,6 +568,20 @@ non-interactive planning session with:
 crush run --plan "Investigate the codebase and propose a refactor plan"
 ```
 
+### Prompt Enhancement
+
+Not sure how to phrase your request? Draft it in the editor and press
+<kbd>ctrl+e</kbd>. Crush sends the draft through a one-off LLM call that
+rewrites it into a clearer, more actionable prompt — grounded in your project
+context (working directory, git status, context files) and, when a session is
+already open, its recent conversation so vague references get resolved.
+
+A confirmation dialog shows the original and optimized prompts side by side:
+press <kbd>enter</kbd> (or <kbd>y</kbd>) to apply the rewrite to the editor, or
+<kbd>esc</kbd> to keep your original text. The optimization runs in the
+background while you keep typing; a spinner in the status bar shows when it is
+in flight.
+
 ### You only live once
 
 You can also skip all permission prompts completely by running Crush with the

@@ -978,6 +978,38 @@ func (c *controllerV1) handlePostWorkspaceAgentSessionSummarize(w http.ResponseW
 	w.WriteHeader(http.StatusOK)
 }
 
+// handlePostWorkspaceAgentOptimizePrompt rewrites a user's draft prompt
+// into a clearer, more actionable prompt.
+//
+//	@Summary		Optimize prompt
+//	@Tags			agent
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path	string							true	"Workspace ID"
+//	@Param			request	body	proto.AgentOptimizePromptRequest	true	"Optimize prompt request"
+//	@Success		200	{object}	proto.AgentOptimizePromptResponse
+//	@Failure		400	{object}	proto.Error
+//	@Failure		404	{object}	proto.Error
+//	@Failure		500	{object}	proto.Error
+//	@Router			/workspaces/{id}/agent/optimize-prompt [post]
+func (c *controllerV1) handlePostWorkspaceAgentOptimizePrompt(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+
+	var req proto.AgentOptimizePromptRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		c.server.logError(r, "Failed to decode optimize prompt request", "error", err)
+		jsonError(w, http.StatusBadRequest, "failed to decode request")
+		return
+	}
+
+	optimized, err := c.backend.OptimizePrompt(r.Context(), id, req.SessionID, req.Draft)
+	if err != nil {
+		c.handleError(w, r, err)
+		return
+	}
+	jsonEncode(w, proto.AgentOptimizePromptResponse{Optimized: optimized})
+}
+
 // handlePostWorkspaceAgentSessionShell runs a shell command in the workspace.
 //
 //	@Summary		Run shell command

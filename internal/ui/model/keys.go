@@ -38,6 +38,10 @@ type KeyMap struct {
 		// PasteText pastes clipboard text into the textarea, as an
 		// alternative to bracketed paste.
 		PasteText key.Binding
+
+		// EnhancePrompt rewrites the current draft via a one-off LLM
+		// call and lets the user apply or discard the result.
+		EnhancePrompt key.Binding
 	}
 
 	Chat struct {
@@ -156,6 +160,10 @@ func DefaultKeyMap() KeyMap {
 	km.Editor.PasteText = key.NewBinding(
 		key.WithKeys("ctrl+shift+v"),
 		key.WithHelp("ctrl+shift+v", i18n.T("key.paste_text")),
+	)
+	km.Editor.EnhancePrompt = key.NewBinding(
+		key.WithKeys("ctrl+e"),
+		key.WithHelp("ctrl+e", i18n.T("key.enhance_prompt")),
 	)
 	km.Editor.MentionFile = key.NewBinding(
 		key.WithKeys("@"),

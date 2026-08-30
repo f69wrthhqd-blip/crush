@@ -586,6 +586,27 @@ func (c *Client) AgentSummarizeSession(ctx context.Context, id string, sessionID
 	return nil
 }
 
+// AgentOptimizePrompt rewrites a user's draft prompt into a clearer,
+// more actionable prompt. An empty sessionID skips conversation context.
+func (c *Client) AgentOptimizePrompt(ctx context.Context, id, sessionID, draft string) (string, error) {
+	rsp, err := c.post(ctx, fmt.Sprintf("/workspaces/%s/agent/optimize-prompt", id), nil, jsonBody(proto.AgentOptimizePromptRequest{
+		SessionID: sessionID,
+		Draft:     draft,
+	}), http.Header{"Content-Type": []string{"application/json"}})
+	if err != nil {
+		return "", fmt.Errorf("failed to optimize prompt: %w", err)
+	}
+	defer rsp.Body.Close()
+	if rsp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to optimize prompt: status code %d", rsp.StatusCode)
+	}
+	var res proto.AgentOptimizePromptResponse
+	if err := json.NewDecoder(rsp.Body).Decode(&res); err != nil {
+		return "", fmt.Errorf("failed to decode optimize prompt response: %w", err)
+	}
+	return res.Optimized, nil
+}
+
 // InitiateAgentProcessing triggers agent initialization on the server.
 func (c *Client) InitiateAgentProcessing(ctx context.Context, id string, interactive bool) error {
 	body := jsonBody(proto.AgentInitRequest{Interactive: interactive})

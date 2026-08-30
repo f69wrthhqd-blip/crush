@@ -110,6 +110,11 @@ type Coordinator interface {
 	Model() Model
 	UpdateModels(ctx context.Context) error
 	GenerateTitle(ctx context.Context, sessionID, prompt string)
+	// OptimizePrompt rewrites a user's draft prompt into a clearer,
+	// more actionable prompt, grounded in project context and the
+	// session's recent conversation. It is a side-call: it never runs
+	// tools and never writes to the session's message history.
+	OptimizePrompt(ctx context.Context, sessionID, draft string) (string, error)
 	// SetPlanMode toggles plan mode for the coder agent. While active, the
 	// tool palette is reduced to read-only tools plus present_plan, and the
 	// system prompt carries plan-mode guidance.
@@ -1341,6 +1346,83 @@ func (c *coordinator) GenerateTitle(ctx context.Context, sessionID, prompt strin
 		return
 	}
 	c.currentAgent.GenerateTitle(ctx, sessionID, prompt)
+}
+
+// optimizePromptRecentMessages limits how many recent conversation
+// messages ground the optimization, and how long each may be.
+const (
+	optimizePromptRecentMessages = 10
+	optimizePromptMessageMaxLen  = 2000
+)
+
+// OptimizePrompt rewrites a user's draft prompt using the current
+// agent. The system prompt carries project context; the user prompt
+// carries the draft plus the session's recent conversation so vague
+// references can be resolved.
+func (c *coordinator) OptimizePrompt(ctx context.Context, sessionID, draft string) (string, error) {
+	if c.currentAgent == nil {
+		return "", errors.New("agent coordinator not initialized")
+	}
+
+	model := c.currentAgent.Model()
+	systemPrompt, err := optimizePromptSystem(ctx, model.Model.Provider(), model.ModelCfg.Model, c.cfg)
+	if err != nil {
+		return "", fmt.Errorf("failed to build optimize prompt: %w", err)
+	}
+
+	userPrompt := fmt.Sprintf("Rewrite the following draft prompt for a coding agent.\n\n<draft>\n%s\n</draft>", draft)
+	if convo := c.optimizePromptConversation(ctx, sessionID); convo != "" {
+		userPrompt += "\n\n" + convo
+	}
+
+	return c.currentAgent.OptimizePrompt(ctx, sessionID, systemPrompt, userPrompt)
+}
+
+// optimizePromptConversation renders the session's recent messages as
+// a context block for the optimization call. It returns an empty
+// string when there is no session or no usable messages.
+func (c *coordinator) optimizePromptConversation(ctx context.Context, sessionID string) string {
+	if sessionID == "" {
+		return ""
+	}
+	msgs, err := c.messages.List(ctx, sessionID)
+	if err != nil {
+		slog.Error("Failed to list messages for prompt optimization", "error", err)
+		return ""
+	}
+
+	// Keep only text-bearing user/assistant messages, then take the
+	// most recent ones.
+	var usable []message.Message
+	for _, msg := range msgs {
+		if msg.Role != message.User && msg.Role != message.Assistant {
+			continue
+		}
+		text := strings.TrimSpace(msg.Content().String())
+		if text == "" {
+			continue
+		}
+		usable = append(usable, msg)
+	}
+	if len(usable) == 0 {
+		return ""
+	}
+	if len(usable) > optimizePromptRecentMessages {
+		usable = usable[len(usable)-optimizePromptRecentMessages:]
+	}
+
+	var sb strings.Builder
+	sb.WriteString("<recent_conversation>\n")
+	sb.WriteString("Recent messages from the current session (oldest first). Use them to resolve pronouns and vague references in the draft; do not repeat their content in your output.\n")
+	for _, msg := range usable {
+		text := strings.TrimSpace(msg.Content().String())
+		if len(text) > optimizePromptMessageMaxLen {
+			text = text[:optimizePromptMessageMaxLen] + "…"
+		}
+		sb.WriteString(fmt.Sprintf("<%s>\n%s\n</%s>\n", msg.Role, text, msg.Role))
+	}
+	sb.WriteString("</recent_conversation>")
+	return sb.String()
 }
 
 // SetPlanMode toggles plan mode and hot-swaps the coder agent's palette:

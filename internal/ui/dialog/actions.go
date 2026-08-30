@@ -63,6 +63,11 @@ type (
 	ActionSummarize                   struct {
 		SessionID string
 	}
+	// ActionPromptEnhanceApply applies the optimized prompt to the
+	// editor, replacing the draft the optimization started from.
+	ActionPromptEnhanceApply struct {
+		Optimized string
+	}
 	// ActionSelectReasoningEffort is a message indicating a reasoning effort
 	// has been selected.
 	ActionSelectReasoningEffort struct {

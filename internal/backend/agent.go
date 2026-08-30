@@ -206,6 +206,21 @@ func (b *Backend) SummarizeSession(ctx context.Context, workspaceID, sessionID s
 	return ws.AgentCoordinator.Summarize(ctx, sessionID)
 }
 
+// OptimizePrompt rewrites a user's draft prompt into a clearer, more
+// actionable prompt via a one-off LLM call.
+func (b *Backend) OptimizePrompt(ctx context.Context, workspaceID, sessionID, draft string) (string, error) {
+	ws, err := b.GetWorkspace(workspaceID)
+	if err != nil {
+		return "", err
+	}
+
+	if ws.AgentCoordinator == nil {
+		return "", ErrAgentNotInitialized
+	}
+
+	return ws.AgentCoordinator.OptimizePrompt(ctx, sessionID, draft)
+}
+
 // QueuedPrompts returns the number of queued prompts for the session.
 func (b *Backend) QueuedPrompts(workspaceID, sessionID string) (int, error) {
 	ws, err := b.GetWorkspace(workspaceID)

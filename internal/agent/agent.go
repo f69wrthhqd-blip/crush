@@ -151,6 +151,10 @@ type SessionAgent interface {
 	Summarize(context.Context, string, fantasy.ProviderOptions, func(context.Context, *fantasy.ProviderError) error) error
 	Model() Model
 	GenerateTitle(ctx context.Context, sessionID, userPrompt string)
+	// OptimizePrompt rewrites a user's draft prompt into a clearer,
+	// more actionable prompt via a one-off non-agentic LLM call. It
+	// does not touch the session's message history.
+	OptimizePrompt(ctx context.Context, sessionID, systemPrompt, userPrompt string) (string, error)
 }
 
 type Model struct {
@@ -1878,6 +1882,63 @@ func (a *sessionAgent) GenerateTitle(ctx context.Context, sessionID string, user
 		slog.Error("Failed to save session title and usage", "error", saveErr)
 		return
 	}
+}
+
+// optimizePromptMaxOutputTokens caps the rewritten prompt so a runaway
+// generation cannot silently balloon a short draft. Reasoning models
+// use their configured DefaultMaxTokens instead so the thinking phase
+// has room to finish.
+const optimizePromptMaxOutputTokens = 4096
+
+// OptimizePrompt rewrites a user's draft prompt via a one-off
+// non-agentic LLM call. It tries the small model first and falls back
+// to the large model, mirroring GenerateTitle.
+func (a *sessionAgent) OptimizePrompt(ctx context.Context, sessionID, systemPrompt, userPrompt string) (string, error) {
+	if strings.TrimSpace(userPrompt) == "" {
+		return "", fmt.Errorf("empty prompt draft")
+	}
+
+	attempts := []Model{a.smallModel.Get(), a.largeModel.Get()}
+	var resp *fantasy.AgentResult
+	var err error
+	for _, m := range attempts {
+		tok := int64(optimizePromptMaxOutputTokens)
+		if m.CatwalkCfg.CanReason {
+			tok = m.CatwalkCfg.DefaultMaxTokens
+		}
+		agent := fantasy.NewAgent(
+			m.Model,
+			fantasy.WithSystemPrompt(systemPrompt),
+			fantasy.WithMaxOutputTokens(tok),
+			fantasy.WithUserAgent(userAgent),
+		)
+		resp, err = agent.Stream(ctx, fantasy.AgentStreamCall{
+			Prompt:  userPrompt,
+			Headers: sessionHeaders(sessionID),
+		})
+		if err == nil && resp.Response.FinishReason != fantasy.FinishReasonLength {
+			break
+		}
+		if err != nil {
+			slog.Error("Error optimizing prompt; trying next model", "err", err)
+		} else {
+			slog.Error("Optimized prompt hit the token limit; trying next model")
+		}
+	}
+	if err != nil {
+		return "", fmt.Errorf("failed to optimize prompt: %w", err)
+	}
+	if resp == nil || resp.Response.FinishReason == fantasy.FinishReasonLength {
+		return "", fmt.Errorf("optimized prompt hit the token limit")
+	}
+
+	optimized := thinkTagRegex.ReplaceAllString(resp.Response.Content.Text(), "")
+	optimized = orphanThinkTagRegex.ReplaceAllString(optimized, "")
+	optimized = strings.TrimSpace(optimized)
+	if optimized == "" {
+		return "", fmt.Errorf("model returned an empty optimized prompt")
+	}
+	return optimized, nil
 }
 
 func (a *sessionAgent) openrouterCost(metadata fantasy.ProviderMetadata) *float64 {

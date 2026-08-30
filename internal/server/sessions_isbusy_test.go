@@ -53,8 +53,11 @@ func (s *stubCoordinator) Summarize(context.Context, string) error {
 func (s *stubCoordinator) Model() agent.Model                            { return agent.Model{} }
 func (s *stubCoordinator) UpdateModels(context.Context) error            { return nil }
 func (s *stubCoordinator) GenerateTitle(context.Context, string, string) {}
-func (s *stubCoordinator) SetPlanMode(bool)                              {}
-func (s *stubCoordinator) PlanMode() bool                                { return false }
+func (s *stubCoordinator) OptimizePrompt(context.Context, string, string) (string, error) {
+	return "", nil
+}
+func (s *stubCoordinator) SetPlanMode(bool) {}
+func (s *stubCoordinator) PlanMode() bool   { return false }
 
 // stubSessions is a minimal session.Service that returns a fixed list
 // (and supports Get by ID). All other methods return zero values; the

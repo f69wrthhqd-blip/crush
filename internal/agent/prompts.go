@@ -17,6 +17,9 @@ var taskPromptTmpl []byte
 //go:embed templates/initialize.md.tpl
 var initializePromptTmpl []byte
 
+//go:embed templates/optimize_prompt.md.tpl
+var optimizePromptTmpl []byte
+
 func coderPrompt(opts ...prompt.Option) (*prompt.Prompt, error) {
 	systemPrompt, err := prompt.NewPrompt("coder", string(coderPromptTmpl), opts...)
 	if err != nil {
@@ -39,6 +42,17 @@ func InitializePrompt(cfg *config.ConfigStore) (string, error) {
 		return "", err
 	}
 	return systemPrompt.Build(context.Background(), "", "", cfg)
+}
+
+// optimizePromptSystem renders the system prompt for the prompt
+// optimization side-call, including project context such as the
+// working directory, git status, and context files.
+func optimizePromptSystem(ctx context.Context, provider, model string, cfg *config.ConfigStore) (string, error) {
+	p, err := prompt.NewPrompt("optimize_prompt", string(optimizePromptTmpl))
+	if err != nil {
+		return "", err
+	}
+	return p.Build(ctx, provider, model, cfg)
 }
 
 // PlanModeSystemReminder is appended to the system prompt while plan mode

@@ -93,6 +93,9 @@ const editorHeightMargin = 2
 // TextareaMinHeight is the minimum height of the prompt textarea.
 const TextareaMinHeight = 3
 
+// enhancePromptTimeout bounds the prompt-optimization side-call.
+const enhancePromptTimeout = 2 * time.Minute
+
 // uiFocusState represents the current focus state of the UI.
 type uiFocusState uint8
 
@@ -116,6 +119,16 @@ const (
 
 type openEditorMsg struct {
 	Text string
+}
+
+// promptEnhancedMsg carries the result of a prompt-optimization
+// side-call back to the UI. Original is the draft the optimization
+// started from; Optimized is the rewritten prompt. Err carries a
+// failure of the side-call itself.
+type promptEnhancedMsg struct {
+	Original  string
+	Optimized string
+	Err       error
 }
 
 type shellResultMsg struct {
@@ -264,6 +277,11 @@ type UI struct {
 
 	readyPlaceholder   string
 	workingPlaceholder string
+
+	// enhancePromptBusy is true while a prompt-optimization side-call
+	// is in flight. It guards against concurrent optimizations and
+	// swaps the textarea placeholder for a working hint.
+	enhancePromptBusy bool
 
 	// Completions state
 	completions              *completions.Completions
@@ -1283,6 +1301,9 @@ func (m *UI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.sidebarScrollbarVisible = false
 		}
 	case spinner.TickMsg:
+		if cmd := m.status.UpdateSpinner(msg); cmd != nil {
+			cmds = append(cmds, cmd)
+		}
 		if m.dialog.HasDialogs() {
 			// route to dialog
 			if cmd := m.handleDialogMsg(msg); cmd != nil {
@@ -1320,6 +1341,14 @@ func (m *UI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.textarea.MoveToEnd()
 		m.syncBangModeFromTextarea()
 		cmds = append(cmds, m.updateTextareaWithPrevHeight(msg, prevHeight))
+	case promptEnhancedMsg:
+		m.enhancePromptBusy = false
+		m.status.StopLoading()
+		if msg.Err != nil {
+			cmds = append(cmds, util.ReportError(msg.Err))
+			break
+		}
+		cmds = append(cmds, m.openPromptEnhanceDialog(msg.Original, msg.Optimized))
 	case shellStreamMsg:
 		if item := m.chat.MessageItem(msg.PendingID); item != nil {
 			if shellItem, ok := item.(*chat.ShellItem); ok {
@@ -1433,6 +1462,8 @@ func (m *UI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Textarea placeholder logic
 		if m.bangMode {
 			m.textarea.Placeholder = i18n.T("editor.placeholder_run_shell")
+		} else if m.enhancePromptBusy {
+			m.textarea.Placeholder = i18n.T("status.prompt_enhancing")
 		} else if m.isAgentBusy() {
 			m.textarea.Placeholder = m.workingPlaceholder
 		} else {
@@ -1966,7 +1997,7 @@ func (m *UI) handleDialogMsg(msg tea.Msg) tea.Cmd {
 			if err := m.com.Workspace.SetConfigField(config.ScopeGlobal, "options.tui.locale", msg.Code); err != nil {
 				cmds = append(cmds, util.ReportError(err))
 			} else {
-				cmds = append(cmds, util.CmdHandler(util.NewInfoMsg(i18n.T("commands.language") + ": " + i18n.T("lang.name"))))
+				cmds = append(cmds, util.CmdHandler(util.NewInfoMsg(i18n.T("commands.language")+": "+i18n.T("lang.name"))))
 			}
 			// Rebuild styles and re-render everything with the new locale.
 			m.refreshStyles()
@@ -2001,6 +2032,9 @@ func (m *UI) handleDialogMsg(msg tea.Msg) tea.Cmd {
 			return nil
 		})
 		m.dialog.CloseDialog(dialog.CommandsID)
+	case dialog.ActionPromptEnhanceApply:
+		m.dialog.CloseDialog(dialog.PromptEnhanceID)
+		cmds = append(cmds, m.applyPromptEnhance(msg.Optimized))
 	case dialog.ActionToggleHelp:
 		m.status.ToggleHelp()
 		m.dialog.CloseDialog(dialog.CommandsID)
@@ -2717,6 +2751,19 @@ func (m *UI) handleKeyPressMsg(msg tea.KeyPressMsg) tea.Cmd {
 					editorValue = "!" + editorValue
 				}
 				cmds = append(cmds, m.openEditor(editorValue))
+			case key.Matches(msg, m.keyMap.Editor.EnhancePrompt):
+				value := strings.TrimSpace(m.textarea.Value())
+				switch {
+				case m.bangMode || value == "":
+					// Shell commands and empty drafts have nothing to
+					// optimize.
+				case m.enhancePromptBusy:
+					cmds = append(cmds, util.ReportWarn(i18n.T("status.prompt_enhance_busy")))
+				default:
+					m.enhancePromptBusy = true
+					cmds = append(cmds, m.status.StartLoading(i18n.T("status.prompt_enhancing")))
+					cmds = append(cmds, m.enhancePrompt(value))
+				}
 			case key.Matches(msg, m.keyMap.Editor.Newline):
 				prevHeight := m.textarea.Height()
 				m.textarea.InsertRune('\n')
@@ -3256,6 +3303,7 @@ func (m *UI) ShortHelp() []key.Binding {
 			binds = append(
 				binds,
 				k.Editor.Newline,
+				k.Editor.EnhancePrompt,
 			)
 		case uiFocusSidebar:
 			binds = append(
@@ -3285,6 +3333,7 @@ func (m *UI) ShortHelp() []key.Binding {
 			commands,
 			k.Models,
 			k.Editor.Newline,
+			k.Editor.EnhancePrompt,
 		)
 	}
 
@@ -3360,6 +3409,7 @@ func (m *UI) FullHelp() [][]key.Binding {
 		case uiFocusEditor:
 			editorBinds := []key.Binding{
 				k.Editor.Newline,
+				k.Editor.EnhancePrompt,
 				k.Editor.MentionFile,
 				k.Editor.OpenEditor,
 				k.Editor.PasteText,
@@ -3435,6 +3485,7 @@ func (m *UI) FullHelp() [][]key.Binding {
 			)
 			editorBinds := []key.Binding{
 				k.Editor.Newline,
+				k.Editor.EnhancePrompt,
 				k.Editor.MentionFile,
 				k.Editor.OpenEditor,
 				k.Editor.PasteText,
@@ -3898,6 +3949,42 @@ func (m *UI) openEditor(value string) tea.Cmd {
 			Text: strings.TrimSpace(string(content)),
 		}
 	})
+}
+
+// enhancePrompt runs the prompt-optimization side-call off-thread and
+// reports the result back through promptEnhancedMsg. The session may
+// be empty (landing screen), in which case the optimization runs
+// without conversation context.
+func (m *UI) enhancePrompt(draft string) tea.Cmd {
+	sessionID := ""
+	if m.hasSession() {
+		sessionID = m.session.ID
+	}
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), enhancePromptTimeout)
+		defer cancel()
+		optimized, err := m.com.Workspace.AgentOptimizePrompt(ctx, sessionID, draft)
+		return promptEnhancedMsg{Original: draft, Optimized: optimized, Err: err}
+	}
+}
+
+// applyPromptEnhance replaces the textarea content with the optimized
+// prompt, reconciling layout if the height changed.
+func (m *UI) applyPromptEnhance(optimized string) tea.Cmd {
+	prevHeight := m.textarea.Height()
+	m.textarea.SetValue(optimized)
+	m.textarea.MoveToEnd()
+	m.syncBangModeFromTextarea()
+	return m.updateTextareaWithPrevHeight(promptEnhancedMsg{Original: "", Optimized: optimized}, prevHeight)
+}
+
+// openPromptEnhanceDialog shows the before/after confirmation for an
+// optimized prompt. Applying it replaces the textarea's content. The
+// dialog opens with an input grace period because it appears
+// asynchronously while the user may still be typing.
+func (m *UI) openPromptEnhanceDialog(original, optimized string) tea.Cmd {
+	m.dialog.OpenDialogWithGrace(dialog.NewPromptEnhance(m.com, original, optimized))
+	return nil
 }
 
 // setEditorPrompt configures the textarea prompt function based on whether

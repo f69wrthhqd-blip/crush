@@ -316,6 +316,10 @@ func (w *ClientWorkspace) AgentSummarize(ctx context.Context, sessionID string) 
 	return w.client.AgentSummarizeSession(ctx, w.workspaceID(), sessionID)
 }
 
+func (w *ClientWorkspace) AgentOptimizePrompt(ctx context.Context, sessionID, draft string) (string, error) {
+	return w.client.AgentOptimizePrompt(ctx, w.workspaceID(), sessionID, draft)
+}
+
 func (w *ClientWorkspace) UpdateAgentModel(ctx context.Context) error {
 	return w.client.UpdateAgent(ctx, w.workspaceID())
 }

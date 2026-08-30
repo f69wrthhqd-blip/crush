@@ -154,6 +154,11 @@ type Workspace interface {
 	AgentQueuedPromptsList(sessionID string) []string
 	AgentClearQueue(sessionID string)
 	AgentSummarize(ctx context.Context, sessionID string) error
+	// AgentOptimizePrompt rewrites a user's draft prompt into a clearer,
+	// more actionable prompt via a one-off LLM call grounded in project
+	// context and the session's recent conversation. It never writes to
+	// the session's message history.
+	AgentOptimizePrompt(ctx context.Context, sessionID, draft string) (string, error)
 	UpdateAgentModel(ctx context.Context) error
 	InitCoderAgent(ctx context.Context) error
 	InitCoderAgentNonInteractive(ctx context.Context) error

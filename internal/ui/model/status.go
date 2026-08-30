@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"charm.land/bubbles/v2/help"
+	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/crush/internal/ui/common"
@@ -23,6 +24,12 @@ type Status struct {
 	help     help.Model
 	helpKm   help.KeyMap
 	msg      util.InfoMsg
+
+	// loading state: shows a spinner with text until stopped, e.g.
+	// while a prompt-optimization side-call is in flight.
+	loading  bool
+	loadText string
+	spinner  spinner.Model
 }
 
 // NewStatus creates a new status bar and help model.
@@ -32,7 +39,40 @@ func NewStatus(com *common.Common, km help.KeyMap) *Status {
 	s.help = help.New()
 	s.help.Styles = com.Styles.Help
 	s.helpKm = km
+	s.spinner = spinner.New(
+		spinner.WithSpinner(spinner.MiniDot),
+		spinner.WithStyle(com.Styles.Dialog.Spinner),
+	)
 	return s
+}
+
+// StartLoading shows a spinner with the given text until StopLoading is
+// called. The returned command drives the spinner animation.
+func (s *Status) StartLoading(text string) tea.Cmd {
+	s.loading = true
+	s.loadText = text
+	return s.spinner.Tick
+}
+
+// StopLoading hides the spinner.
+func (s *Status) StopLoading() {
+	s.loading = false
+}
+
+// Loading reports whether the spinner is active.
+func (s *Status) Loading() bool {
+	return s.loading
+}
+
+// UpdateSpinner advances the spinner on a tick and returns the next
+// tick command while loading.
+func (s *Status) UpdateSpinner(msg tea.Msg) tea.Cmd {
+	if !s.loading {
+		return nil
+	}
+	var cmd tea.Cmd
+	s.spinner, cmd = s.spinner.Update(msg)
+	return cmd
 }
 
 // SetInfoMsg sets the status info message.
@@ -72,6 +112,20 @@ func (s *Status) Draw(scr uv.Screen, area uv.Rectangle) {
 	if !s.hideHelp {
 		helpView := s.com.Styles.Status.Help.Render(s.help.View(s.helpKm))
 		uv.NewStyledString(helpView).Draw(scr, area)
+	}
+
+	// Render the loading spinner over the help view.
+	if s.loading {
+		msgStyle := s.com.Styles.Status.InfoMessage
+		ind := s.spinner.View()
+		msgPad := msgStyle.GetPaddingLeft() + msgStyle.GetPaddingRight()
+		avail := max(0, area.Dx()-lipgloss.Width(ind)-msgPad)
+		msg := ansi.Truncate(s.loadText, avail, "…")
+		if w := lipgloss.Width(msg); w < avail {
+			msg += strings.Repeat(" ", avail-w)
+		}
+		uv.NewStyledString(ind+msgStyle.Render(msg)).Draw(scr, area)
+		return
 	}
 
 	// Render notifications

@@ -113,6 +113,18 @@ type AgentPlanModeRequest struct {
 	PlanMode bool `json:"plan_mode"`
 }
 
+// AgentOptimizePromptRequest represents a request to rewrite a user's
+// draft prompt into a clearer, more actionable prompt.
+type AgentOptimizePromptRequest struct {
+	SessionID string `json:"session_id,omitempty"`
+	Draft     string `json:"draft"`
+}
+
+// AgentOptimizePromptResponse carries the optimized prompt.
+type AgentOptimizePromptResponse struct {
+	Optimized string `json:"optimized"`
+}
+
 // LSPStartRequest represents a request to start an LSP for a path.
 type LSPStartRequest struct {
 	Path string `json:"path"`
