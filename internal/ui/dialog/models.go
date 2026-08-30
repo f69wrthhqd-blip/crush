@@ -63,9 +63,9 @@ func (mt ModelType) Placeholder() string {
 }
 
 const (
-	onboardingModelInputPlaceholder = "onboarding.model.find_your_fave"
-	largeModelInputPlaceholder      = "onboarding.model.large_placeholder"
-	smallModelInputPlaceholder      = "onboarding.model.small_placeholder"
+	onboardingModelInputPlaceholder = "model.find_your_fave"
+	largeModelInputPlaceholder      = "model.large_placeholder"
+	smallModelInputPlaceholder      = "model.small_placeholder"
 )
 
 // ModelsID is the identifier for the model selection dialog.
