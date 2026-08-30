@@ -23,7 +23,7 @@ type hookApprovalKey struct{}
 // Tools that mutate state are rejected outright during planning; the
 // message guides the model back to read-only investigation.
 var ErrPlanModeBlocksWrite = errors.New(
-	"tool blocked by plan mode: not a read-only tool. Pivot to read-only tools (view, glob, grep, ls, web_fetch, etc.) to gather information, then present your plan.",
+	"tool blocked by plan mode: not a read-only tool. Pivot to read-only tools (view, glob, grep, ls, fetch, etc.) to gather information, then present your plan",
 )
 
 // WithHookApproval returns a context that marks the given tool call ID as

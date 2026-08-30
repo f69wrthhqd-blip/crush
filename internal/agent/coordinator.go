@@ -813,8 +813,9 @@ func (c *coordinator) buildTools(ctx context.Context, agent config.Agent, isSubA
 	// Plan mode reduces the palette to read-only tools plus the plan
 	// lifecycle tool. Filtering here (instead of only in permission
 	// checks) means the model never even sees write tools during
-	// planning. present_plan is always added separately so the model can
-	// hand off its plan for approval.
+	// planning. present_plan survives the AllowedTools filter because it
+	// is listed in allToolNames, so the model can always hand off its
+	// plan for approval.
 	if c.planMode.Load() {
 		var planTools []fantasy.AgentTool
 		for _, tool := range filteredTools {
@@ -850,8 +851,6 @@ func isPlanModeTool(name string) bool {
 		tools.SourcegraphToolName,
 		tools.TodosToolName,
 		tools.QuestionToolName,
-		tools.WebFetchToolName,
-		tools.WebSearchToolName,
 		tools.CrushInfoToolName,
 		tools.CrushLogsToolName,
 		tools.ReadMCPResourceToolName,
@@ -1312,7 +1311,7 @@ func (c *coordinator) buildSystemPrompt(ctx context.Context, provider, model str
 		return "", err
 	}
 	if c.planMode.Load() {
-		rendered += "\n\n" + PlanModeSystemReminder
+		rendered += "\n\n" + PlanModeSystemReminder(c.interactive)
 	}
 	return rendered, nil
 }
@@ -1438,9 +1437,13 @@ func (c *coordinator) SetPlanMode(planMode bool) {
 		return
 	}
 	// Rebuild tools and system prompt under the new mode. UpdateModels
-	// rebuilds tools from the current planMode state.
+	// rebuilds tools from the current planMode state. On failure, roll
+	// the whole toggle back: a permission gate in the new mode with the
+	// old palette would leave them permanently out of sync.
 	if err := c.UpdateModels(context.Background()); err != nil {
-		slog.Error("Failed to rebuild agent for plan mode change", "plan_mode", planMode, "error", err)
+		c.planMode.Store(!planMode)
+		c.permissions.SetPlanMode(!planMode)
+		slog.Error("Failed to rebuild agent for plan mode change, reverting mode", "plan_mode", planMode, "error", err)
 	}
 }
 

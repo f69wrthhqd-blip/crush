@@ -17,8 +17,6 @@ func TestIsPlanModeTool(t *testing.T) {
 		tools.SourcegraphToolName,
 		tools.TodosToolName,
 		tools.QuestionToolName,
-		tools.WebFetchToolName,
-		tools.WebSearchToolName,
 		tools.CrushInfoToolName,
 		tools.CrushLogsToolName,
 		tools.ReadMCPResourceToolName,
@@ -51,6 +49,15 @@ func TestIsPlanModeTool(t *testing.T) {
 	for _, name := range writeTools {
 		if isPlanModeTool(name) {
 			t.Errorf("expected %q to be blocked in plan mode", name)
+		}
+	}
+
+	// Not first-class tools at all: web_fetch and web_search only exist
+	// inside the agentic_fetch sub-runner, so they must never be advertised
+	// as part of the plan-mode palette.
+	for _, name := range []string{tools.WebFetchToolName, tools.WebSearchToolName} {
+		if isPlanModeTool(name) {
+			t.Errorf("expected non-first-class tool %q to be blocked in plan mode", name)
 		}
 	}
 }

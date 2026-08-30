@@ -880,6 +880,7 @@ func allToolNames() []string {
 		"glob",
 		"grep",
 		"ls",
+		"present_plan",
 		"question",
 		"sourcegraph",
 		"todos",
