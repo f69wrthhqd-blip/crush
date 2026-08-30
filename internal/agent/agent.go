@@ -138,7 +138,7 @@ type SessionAgentCall struct {
 type SessionAgent interface {
 	Run(context.Context, SessionAgentCall) (*fantasy.AgentResult, error)
 	BeginAccepted(sessionID string) *AcceptedRun
-	SetModels(large Model, small Model)
+	SetModels(large Model, small Model, optimize Model)
 	SetTools(tools []fantasy.AgentTool)
 	SetSystemPrompt(systemPrompt string)
 	Cancel(sessionID string)
@@ -176,6 +176,7 @@ type activeCancel struct {
 type sessionAgent struct {
 	largeModel         *csync.Value[Model]
 	smallModel         *csync.Value[Model]
+	optimizeModel      *csync.Value[Model]
 	systemPromptPrefix *csync.Value[string]
 	systemPrompt       *csync.Value[string]
 	tools              *csync.Slice[fantasy.AgentTool]
@@ -232,6 +233,7 @@ type sessionAgent struct {
 type SessionAgentOptions struct {
 	LargeModel           Model
 	SmallModel           Model
+	OptimizeModel        Model
 	SystemPromptPrefix   string
 	SystemPrompt         string
 	IsSubAgent           bool
@@ -250,6 +252,7 @@ func NewSessionAgent(
 	return &sessionAgent{
 		largeModel:           csync.NewValue(opts.LargeModel),
 		smallModel:           csync.NewValue(opts.SmallModel),
+		optimizeModel:        csync.NewValue(opts.OptimizeModel),
 		systemPromptPrefix:   csync.NewValue(opts.SystemPromptPrefix),
 		systemPrompt:         csync.NewValue(opts.SystemPrompt),
 		isSubAgent:           opts.IsSubAgent,
@@ -1891,44 +1894,33 @@ func (a *sessionAgent) GenerateTitle(ctx context.Context, sessionID string, user
 const optimizePromptMaxOutputTokens = 4096
 
 // OptimizePrompt rewrites a user's draft prompt via a one-off
-// non-agentic LLM call. It tries the small model first and falls back
-// to the large model, mirroring GenerateTitle.
+// non-agentic LLM call. It runs on the optimize model slot, which
+// defaults to the large (current conversation) model and can be
+// overridden via the model picker or `model optimize` in crushrc.
 func (a *sessionAgent) OptimizePrompt(ctx context.Context, sessionID, systemPrompt, userPrompt string) (string, error) {
 	if strings.TrimSpace(userPrompt) == "" {
 		return "", fmt.Errorf("empty prompt draft")
 	}
 
-	attempts := []Model{a.smallModel.Get(), a.largeModel.Get()}
-	var resp *fantasy.AgentResult
-	var err error
-	for _, m := range attempts {
-		tok := int64(optimizePromptMaxOutputTokens)
-		if m.CatwalkCfg.CanReason {
-			tok = m.CatwalkCfg.DefaultMaxTokens
-		}
-		agent := fantasy.NewAgent(
-			m.Model,
-			fantasy.WithSystemPrompt(systemPrompt),
-			fantasy.WithMaxOutputTokens(tok),
-			fantasy.WithUserAgent(userAgent),
-		)
-		resp, err = agent.Stream(ctx, fantasy.AgentStreamCall{
-			Prompt:  userPrompt,
-			Headers: sessionHeaders(sessionID),
-		})
-		if err == nil && resp.Response.FinishReason != fantasy.FinishReasonLength {
-			break
-		}
-		if err != nil {
-			slog.Error("Error optimizing prompt; trying next model", "err", err)
-		} else {
-			slog.Error("Optimized prompt hit the token limit; trying next model")
-		}
+	m := a.optimizeModel.Get()
+	tok := int64(optimizePromptMaxOutputTokens)
+	if m.CatwalkCfg.CanReason {
+		tok = m.CatwalkCfg.DefaultMaxTokens
 	}
+	agent := fantasy.NewAgent(
+		m.Model,
+		fantasy.WithSystemPrompt(systemPrompt),
+		fantasy.WithMaxOutputTokens(tok),
+		fantasy.WithUserAgent(userAgent),
+	)
+	resp, err := agent.Stream(ctx, fantasy.AgentStreamCall{
+		Prompt:  userPrompt,
+		Headers: sessionHeaders(sessionID),
+	})
 	if err != nil {
 		return "", fmt.Errorf("failed to optimize prompt: %w", err)
 	}
-	if resp == nil || resp.Response.FinishReason == fantasy.FinishReasonLength {
+	if resp.Response.FinishReason == fantasy.FinishReasonLength {
 		return "", fmt.Errorf("optimized prompt hit the token limit")
 	}
 
@@ -2140,9 +2132,10 @@ func (a *sessionAgent) QueuedPromptsList(sessionID string) []string {
 	return prompts
 }
 
-func (a *sessionAgent) SetModels(large Model, small Model) {
+func (a *sessionAgent) SetModels(large Model, small Model, optimize Model) {
 	a.largeModel.Set(large)
 	a.smallModel.Set(small)
+	a.optimizeModel.Set(optimize)
 }
 
 func (a *sessionAgent) SetTools(tools []fantasy.AgentTool) {

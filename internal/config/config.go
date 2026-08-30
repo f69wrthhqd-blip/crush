@@ -52,8 +52,9 @@ func (s SelectedModelType) String() string {
 }
 
 const (
-	SelectedModelTypeLarge SelectedModelType = "large"
-	SelectedModelTypeSmall SelectedModelType = "small"
+	SelectedModelTypeLarge    SelectedModelType = "large"
+	SelectedModelTypeSmall    SelectedModelType = "small"
+	SelectedModelTypeOptimize SelectedModelType = "optimize"
 )
 
 const (

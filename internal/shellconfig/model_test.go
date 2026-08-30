@@ -82,6 +82,26 @@ func TestModelSelectRejectsInvalidTopP(t *testing.T) {
 	require.Contains(t, err.Error(), "between 0 and 1")
 }
 
+// TestModelOptimize verifies that `model optimize` writes the optimize
+// slot used by the prompt-enhancement side call.
+func TestModelOptimize(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join(t.TempDir(), "crushrc")
+	jsonBytes, err := LoadShellConfig(t.Context(), path, []byte(`model optimize openai/gpt-x --reasoning-effort low`))
+	require.NoError(t, err)
+
+	var result map[string]any
+	require.NoError(t, json.Unmarshal(jsonBytes, &result))
+	models, ok := result["models"].(map[string]any)
+	require.True(t, ok)
+	optimize, ok := models["optimize"].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, "openai", optimize["provider"])
+	require.Equal(t, "gpt-x", optimize["model"])
+	require.Equal(t, "low", optimize["reasoning_effort"])
+}
+
 func TestModelSelectRejectsNonObjectProviderOptions(t *testing.T) {
 	t.Parallel()
 

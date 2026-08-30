@@ -24,6 +24,7 @@ type ModelType int
 const (
 	ModelTypeLarge ModelType = iota
 	ModelTypeSmall
+	ModelTypeOptimize
 )
 
 // String returns the string representation of the [ModelType].
@@ -33,6 +34,8 @@ func (mt ModelType) String() string {
 		return i18n.T("model.large_task")
 	case ModelTypeSmall:
 		return i18n.T("model.small_task")
+	case ModelTypeOptimize:
+		return i18n.T("model.optimize_task")
 	default:
 		return "Unknown"
 	}
@@ -45,6 +48,8 @@ func (mt ModelType) Config() config.SelectedModelType {
 		return config.SelectedModelTypeLarge
 	case ModelTypeSmall:
 		return config.SelectedModelTypeSmall
+	case ModelTypeOptimize:
+		return config.SelectedModelTypeOptimize
 	default:
 		return ""
 	}
@@ -57,6 +62,8 @@ func (mt ModelType) Placeholder() string {
 		return i18n.T(largeModelInputPlaceholder)
 	case ModelTypeSmall:
 		return i18n.T(smallModelInputPlaceholder)
+	case ModelTypeOptimize:
+		return i18n.T(optimizeModelInputPlaceholder)
 	default:
 		return ""
 	}
@@ -66,6 +73,7 @@ const (
 	onboardingModelInputPlaceholder = "model.find_your_fave"
 	largeModelInputPlaceholder      = "model.large_placeholder"
 	smallModelInputPlaceholder      = "model.small_placeholder"
+	optimizeModelInputPlaceholder   = "model.optimize_placeholder"
 )
 
 // ModelsID is the identifier for the model selection dialog.
@@ -213,11 +221,7 @@ func (m *Models) HandleMsg(msg tea.Msg) Action {
 			if m.isOnboarding {
 				break
 			}
-			if m.modelType == ModelTypeLarge {
-				m.modelType = ModelTypeSmall
-			} else {
-				m.modelType = ModelTypeLarge
-			}
+			m.modelType = (m.modelType + 1) % 3
 			if err := m.setProviderItems(); err != nil {
 				return util.ReportError(err)
 			}
@@ -249,18 +253,24 @@ func (m *Models) modelTypeRadioView() string {
 	textStyle := t.Radio.Label
 	largeRadioStyle := t.Radio.Off
 	smallRadioStyle := t.Radio.Off
-	if m.modelType == ModelTypeLarge {
+	optimizeRadioStyle := t.Radio.Off
+	switch m.modelType {
+	case ModelTypeLarge:
 		largeRadioStyle = t.Radio.On
-	} else {
+	case ModelTypeSmall:
 		smallRadioStyle = t.Radio.On
+	case ModelTypeOptimize:
+		optimizeRadioStyle = t.Radio.On
 	}
 
 	largeRadio := largeRadioStyle.Padding(0, 1).Render()
 	smallRadio := smallRadioStyle.Padding(0, 1).Render()
+	optimizeRadio := optimizeRadioStyle.Padding(0, 1).Render()
 
-	return fmt.Sprintf("%s%s  %s%s",
+	return fmt.Sprintf("%s%s  %s%s  %s%s",
 		largeRadio, textStyle.Render(ModelTypeLarge.String()),
-		smallRadio, textStyle.Render(ModelTypeSmall.String()))
+		smallRadio, textStyle.Render(ModelTypeSmall.String()),
+		optimizeRadio, textStyle.Render(ModelTypeOptimize.String()))
 }
 
 // Draw implements [Dialog].

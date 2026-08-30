@@ -639,7 +639,7 @@ func mergeCallOptions(model Model, cfg config.ProviderConfig) (fantasy.ProviderO
 }
 
 func (c *coordinator) buildAgent(ctx context.Context, prompt *prompt.Prompt, agent config.Agent, isSubAgent bool) (SessionAgent, error) {
-	large, small, err := c.buildAgentModels(ctx, isSubAgent)
+	large, small, optimize, err := c.buildAgentModels(ctx, isSubAgent)
 	if err != nil {
 		return nil, err
 	}
@@ -648,6 +648,7 @@ func (c *coordinator) buildAgent(ctx context.Context, prompt *prompt.Prompt, age
 	result := NewSessionAgent(SessionAgentOptions{
 		LargeModel:           large,
 		SmallModel:           small,
+		OptimizeModel:        optimize,
 		SystemPromptPrefix:   largeProviderCfg.SystemPromptPrefix,
 		SystemPrompt:         "",
 		IsSubAgent:           isSubAgent,
@@ -867,34 +868,34 @@ func isPlanModeTool(name string) bool {
 }
 
 // TODO: when we support multiple agents we need to change this so that we pass in the agent specific model config
-func (c *coordinator) buildAgentModels(ctx context.Context, isSubAgent bool) (Model, Model, error) {
+func (c *coordinator) buildAgentModels(ctx context.Context, isSubAgent bool) (Model, Model, Model, error) {
 	largeModelCfg, ok := c.cfg.Config().Models[config.SelectedModelTypeLarge]
 	if !ok {
-		return Model{}, Model{}, errLargeModelNotSelected
+		return Model{}, Model{}, Model{}, errLargeModelNotSelected
 	}
 	smallModelCfg, ok := c.cfg.Config().Models[config.SelectedModelTypeSmall]
 	if !ok {
-		return Model{}, Model{}, errSmallModelNotSelected
+		return Model{}, Model{}, Model{}, errSmallModelNotSelected
 	}
 
 	largeProviderCfg, ok := c.cfg.Config().Providers.Get(largeModelCfg.Provider)
 	if !ok {
-		return Model{}, Model{}, errLargeModelProviderNotConfigured
+		return Model{}, Model{}, Model{}, errLargeModelProviderNotConfigured
 	}
 
 	largeProvider, err := c.buildProvider(largeProviderCfg, largeModelCfg, isSubAgent)
 	if err != nil {
-		return Model{}, Model{}, err
+		return Model{}, Model{}, Model{}, err
 	}
 
 	smallProviderCfg, ok := c.cfg.Config().Providers.Get(smallModelCfg.Provider)
 	if !ok {
-		return Model{}, Model{}, errSmallModelProviderNotConfigured
+		return Model{}, Model{}, Model{}, errSmallModelProviderNotConfigured
 	}
 
 	smallProvider, err := c.buildProvider(smallProviderCfg, smallModelCfg, true)
 	if err != nil {
-		return Model{}, Model{}, err
+		return Model{}, Model{}, Model{}, err
 	}
 
 	var largeCatwalkModel *catwalk.Model
@@ -912,11 +913,11 @@ func (c *coordinator) buildAgentModels(ctx context.Context, isSubAgent bool) (Mo
 	}
 
 	if largeCatwalkModel == nil {
-		return Model{}, Model{}, errLargeModelNotFound
+		return Model{}, Model{}, Model{}, errLargeModelNotFound
 	}
 
 	if smallCatwalkModel == nil {
-		return Model{}, Model{}, errSmallModelNotFound
+		return Model{}, Model{}, Model{}, errSmallModelNotFound
 	}
 
 	largeModelID := largeModelCfg.Model
@@ -932,24 +933,76 @@ func (c *coordinator) buildAgentModels(ctx context.Context, isSubAgent bool) (Mo
 
 	largeModel, err := largeProvider.LanguageModel(ctx, largeModelID)
 	if err != nil {
-		return Model{}, Model{}, err
+		return Model{}, Model{}, Model{}, err
 	}
 	smallModel, err := smallProvider.LanguageModel(ctx, smallModelID)
 	if err != nil {
-		return Model{}, Model{}, err
+		return Model{}, Model{}, Model{}, err
 	}
 
+	large := Model{
+		Model:      largeModel,
+		CatwalkCfg: *largeCatwalkModel,
+		ModelCfg:   largeModelCfg,
+		FlatRate:   largeProviderCfg.FlatRate,
+	}
+	small := Model{
+		Model:      smallModel,
+		CatwalkCfg: *smallCatwalkModel,
+		ModelCfg:   smallModelCfg,
+		FlatRate:   smallProviderCfg.FlatRate,
+	}
+
+	// The optimize slot powers the prompt-enhancement side call
+	// (ctrl+e). It defaults to the large model; a configured override
+	// that fails to build also falls back to it.
+	optimize := large
+	if optimizeModelCfg, ok := c.cfg.Config().Models[config.SelectedModelTypeOptimize]; ok {
+		built, err := c.buildSingleModel(ctx, optimizeModelCfg, true)
+		if err != nil {
+			slog.Warn("Failed to build the configured optimize model; falling back to the large model", "error", err)
+		} else {
+			optimize = built
+		}
+	}
+
+	return large, small, optimize, nil
+}
+
+// buildSingleModel resolves one configured model slot against the
+// provider catalog and builds its language model.
+func (c *coordinator) buildSingleModel(ctx context.Context, modelCfg config.SelectedModel, isSubAgent bool) (Model, error) {
+	providerCfg, ok := c.cfg.Config().Providers.Get(modelCfg.Provider)
+	if !ok {
+		return Model{}, fmt.Errorf("provider %q is not configured", modelCfg.Provider)
+	}
+	provider, err := c.buildProvider(providerCfg, modelCfg, isSubAgent)
+	if err != nil {
+		return Model{}, err
+	}
+	var catwalkModel *catwalk.Model
+	for _, m := range providerCfg.Models {
+		if m.ID == modelCfg.Model {
+			catwalkModel = &m
+		}
+	}
+	if catwalkModel == nil {
+		return Model{}, fmt.Errorf("model %q not found in provider %q", modelCfg.Model, modelCfg.Provider)
+	}
+	modelID := modelCfg.Model
+	if modelCfg.Provider == openrouter.Name && isExactoSupported(modelID) {
+		modelID += ":exacto"
+	}
+	lm, err := provider.LanguageModel(ctx, modelID)
+	if err != nil {
+		return Model{}, err
+	}
 	return Model{
-			Model:      largeModel,
-			CatwalkCfg: *largeCatwalkModel,
-			ModelCfg:   largeModelCfg,
-			FlatRate:   largeProviderCfg.FlatRate,
-		}, Model{
-			Model:      smallModel,
-			CatwalkCfg: *smallCatwalkModel,
-			ModelCfg:   smallModelCfg,
-			FlatRate:   smallProviderCfg.FlatRate,
-		}, nil
+		Model:      lm,
+		CatwalkCfg: *catwalkModel,
+		ModelCfg:   modelCfg,
+		FlatRate:   providerCfg.FlatRate,
+	}, nil
 }
 
 func (c *coordinator) buildAnthropicProvider(baseURL, apiKey string, headers map[string]string, providerID string) (fantasy.Provider, error) {
@@ -1271,11 +1324,11 @@ func (c *coordinator) Model() Model {
 
 func (c *coordinator) UpdateModels(ctx context.Context) error {
 	// build the models again so we make sure we get the latest config
-	large, small, err := c.buildAgentModels(ctx, false)
+	large, small, optimize, err := c.buildAgentModels(ctx, false)
 	if err != nil {
 		return err
 	}
-	c.currentAgent.SetModels(large, small)
+	c.currentAgent.SetModels(large, small, optimize)
 
 	agentCfg, ok := c.cfg.Config().Agents[config.AgentCoder]
 	if !ok {

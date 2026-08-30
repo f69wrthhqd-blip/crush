@@ -582,6 +582,11 @@ press <kbd>enter</kbd> (or <kbd>y</kbd>) to apply the rewrite to the editor, or
 background while you keep typing; a spinner in the status bar shows when it is
 in flight.
 
+By default the optimization uses your current conversation model. To run it on
+a different model, pick one for the **Prompt Optimization** slot in the model
+picker (<kbd>ctrl+l</kbd>, <kbd>tab</kbd> to cycle), or set it in `crushrc`
+with `model optimize <provider>/<model>`.
+
 ### You only live once
 
 You can also skip all permission prompts completely by running Crush with the
