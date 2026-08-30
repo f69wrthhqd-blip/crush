@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -1007,17 +1008,44 @@ func (c *coordinator) buildSingleModel(ctx context.Context, modelCfg config.Sele
 	}, nil
 }
 
+// anthropicEnvMu serialises the temporary ANTHROPIC_API_KEY masking done
+// while building an Anthropic provider. Without it, two concurrent builds
+// could each capture the original value at different points (one after the
+// other already blanked it) and the final restore would lose the real key.
+var anthropicEnvMu sync.Mutex
+
+// maskAnthropicAPIKeyEnv blanks ANTHROPIC_API_KEY so the SDK's synchronous
+// env lookup in anthropic.New does not pick up a credential that belongs to
+// a different provider. The returned restore func must be called before the
+// provider is used further so the process environment is left untouched for
+// other provider builds and child processes.
+func maskAnthropicAPIKeyEnv() (restore func()) {
+	anthropicEnvMu.Lock()
+	orig, hadOrig := os.LookupEnv("ANTHROPIC_API_KEY")
+	os.Setenv("ANTHROPIC_API_KEY", "")
+	return func() {
+		if hadOrig {
+			os.Setenv("ANTHROPIC_API_KEY", orig)
+		} else {
+			os.Unsetenv("ANTHROPIC_API_KEY")
+		}
+		anthropicEnvMu.Unlock()
+	}
+}
+
 func (c *coordinator) buildAnthropicProvider(baseURL, apiKey string, headers map[string]string, providerID string) (fantasy.Provider, error) {
 	var opts []anthropic.Option
 
 	switch {
 	case strings.HasPrefix(apiKey, "Bearer "):
 		// NOTE: Prevent the SDK from picking up the API key from env.
-		os.Setenv("ANTHROPIC_API_KEY", "")
+		restore := maskAnthropicAPIKeyEnv()
+		defer restore()
 		headers["Authorization"] = apiKey
 	case providerID == string(catwalk.InferenceProviderMiniMax) || providerID == string(catwalk.InferenceProviderMiniMaxChina):
 		// NOTE: Prevent the SDK from picking up the API key from env.
-		os.Setenv("ANTHROPIC_API_KEY", "")
+		restore := maskAnthropicAPIKeyEnv()
+		defer restore()
 		headers["Authorization"] = "Bearer " + apiKey
 	case apiKey != "":
 		// X-Api-Key header
