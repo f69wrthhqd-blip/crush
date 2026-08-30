@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"charm.land/fantasy"
+	"github.com/charmbracelet/crush/internal/i18n"
 	"github.com/charmbracelet/crush/internal/question"
 )
 
@@ -60,34 +61,37 @@ func NewPresentPlanTool(svc question.Service) fantasy.AgentTool {
 
 			sessionID := GetSessionFromContext(ctx)
 
+			// Dialog strings are user-facing and localized; the response
+			// strings below stay in English because the model consumes
+			// them.
 			req := question.Request{
 				ID:                 PlanApprovalBatchID,
 				SessionID:          sessionID,
 				ToolCallID:         call.ID,
-				ConfirmTitle:       "Approve this plan?",
-				ConfirmDescription: "The plan below will be executed once approved.",
+				ConfirmTitle:       i18n.T("plan_approval.title"),
+				ConfirmDescription: i18n.T("plan_approval.description"),
 				Questions: []question.Question{
 					{
 						ID:          PlanApprovalQuestionID,
 						Type:        question.TypeSingleChoice,
-						Label:       "Plan",
+						Label:       i18n.T("plan_approval.label"),
 						Text:        params.Plan,
-						Description: "Approve this plan to start implementing, or keep refining it.",
+						Description: i18n.T("plan_approval.question_description"),
 						Choices: []question.Choice{
 							{
 								ID:          string(PlanApprovalExecute),
-								Label:       "Execute",
-								Description: "Approve and exit plan mode to implement.",
+								Label:       i18n.T("plan_approval.execute"),
+								Description: i18n.T("plan_approval.execute_description"),
 							},
 							{
 								ID:          string(PlanApprovalContinue),
-								Label:       "Continue planning",
-								Description: "Stay in plan mode and refine the plan.",
+								Label:       i18n.T("plan_approval.continue"),
+								Description: i18n.T("plan_approval.continue_description"),
 							},
 							{
 								ID:          string(PlanApprovalCancel),
-								Label:       "Cancel",
-								Description: "Dismiss the plan without executing.",
+								Label:       i18n.T("plan_approval.cancel"),
+								Description: i18n.T("plan_approval.cancel_description"),
 							},
 						},
 					},
@@ -97,7 +101,7 @@ func NewPresentPlanTool(svc question.Service) fantasy.AgentTool {
 			answers, err := svc.Ask(ctx, req)
 			if err != nil {
 				if errors.Is(err, question.ErrCancelled) {
-					resp := fantasy.NewTextErrorResponse("Plan review was cancelled. Continue investigating and refine the plan, then call present_plan again when it is complete.")
+					resp := fantasy.NewTextErrorResponse(i18n.T("plan_approval.cancelled"))
 					resp.StopTurn = true
 					return resp, nil
 				}

@@ -26,6 +26,7 @@ func (s *stubQuestionService) Cancel() bool                  { return false }
 func (s *stubQuestionService) Subscribe(ctx context.Context) <-chan pubsub.Event[question.Request] {
 	return make(<-chan pubsub.Event[question.Request])
 }
+
 func (s *stubQuestionService) SubscribeNotifications(ctx context.Context) <-chan pubsub.Event[question.Notification] {
 	return make(<-chan pubsub.Event[question.Notification])
 }
