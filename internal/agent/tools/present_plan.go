@@ -75,18 +75,18 @@ func NewPresentPlanTool(svc question.Service) fantasy.AgentTool {
 						Description: "Approve this plan to start implementing, or keep refining it.",
 						Choices: []question.Choice{
 							{
-								ID:    string(PlanApprovalExecute),
-								Label: "Execute",
+								ID:          string(PlanApprovalExecute),
+								Label:       "Execute",
 								Description: "Approve and exit plan mode to implement.",
 							},
 							{
-								ID:    string(PlanApprovalContinue),
-								Label: "Continue planning",
+								ID:          string(PlanApprovalContinue),
+								Label:       "Continue planning",
 								Description: "Stay in plan mode and refine the plan.",
 							},
 							{
-								ID:    string(PlanApprovalCancel),
-								Label: "Cancel",
+								ID:          string(PlanApprovalCancel),
+								Label:       "Cancel",
 								Description: "Dismiss the plan without executing.",
 							},
 						},
