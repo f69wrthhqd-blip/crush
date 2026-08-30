@@ -57,3 +57,6 @@ completions/crush.*sh
 
 # ZCode CLI local directory
 .zcode/
+
+# Local install script (not committed)
+install-local.sh
