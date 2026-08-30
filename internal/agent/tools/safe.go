@@ -108,7 +108,7 @@ var dangerousArgPrefixesFold = map[string][]string{
 		"/release",
 		"/renew",
 		"/flushdns",
-		"/registerdns",
+		"/registerdns", //nolint:misspell // actual ipconfig flag name
 		"/setclassid",
 		"/setdnsservers",
 	},
