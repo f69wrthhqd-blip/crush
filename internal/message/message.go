@@ -86,6 +86,10 @@ type pendingState struct {
 	// but other flushers must back off.
 	flushing bool
 
+	// cond wakes synchronous flushers blocked on an in-flight write for
+	// this ID. It is bound to service.mu.
+	cond *sync.Cond
+
 	// timer is the active debounce timer, or nil if no flush is
 	// scheduled. Stopped and reset when a terminal update preempts
 	// the debounce window.
@@ -152,6 +156,9 @@ func (s *service) Delete(ctx context.Context, id string) error {
 			p.timer.Stop()
 		}
 		delete(s.pending, id)
+		// Wake synchronous flushers waiting on the dropped entry; they
+		// will re-check the map and return.
+		p.cond.Broadcast()
 	}
 	s.mu.Unlock()
 	// Clone the message before publishing to avoid race conditions with
@@ -215,6 +222,12 @@ func (s *service) DeleteSessionMessages(ctx context.Context, sessionID string) e
 // Update accepts a new state for a message and either flushes
 // synchronously (terminal updates, debounce <= 0) or buffers it until
 // the next debounce tick. See [Service] for the contract.
+// newPendingState allocates a pending entry whose condition variable is
+// bound to the service mutex.
+func (s *service) newPendingState() *pendingState {
+	return &pendingState{cond: sync.NewCond(&s.mu)}
+}
+
 func (s *service) Update(ctx context.Context, msg Message) error {
 	cloned := msg.Clone()
 
@@ -225,7 +238,7 @@ func (s *service) Update(ctx context.Context, msg Message) error {
 		s.mu.Lock()
 		p, ok := s.pending[msg.ID]
 		if !ok {
-			p = &pendingState{}
+			p = s.newPendingState()
 			s.pending[msg.ID] = p
 		}
 		p.latest = cloned
@@ -237,7 +250,7 @@ func (s *service) Update(ctx context.Context, msg Message) error {
 	s.mu.Lock()
 	p, ok := s.pending[msg.ID]
 	if !ok {
-		p = &pendingState{}
+		p = s.newPendingState()
 		s.pending[msg.ID] = p
 	}
 	p.latest = cloned
@@ -325,9 +338,11 @@ func (s *service) flushOne(ctx context.Context, id string, syncCaller bool) erro
 				s.mu.Unlock()
 				return nil
 			}
+			// Block until the in-flight flusher signals completion;
+			// Wait releases mu while blocked and reacquires it on wake,
+			// so unlock before the loop top locks again.
+			p.cond.Wait()
 			s.mu.Unlock()
-			// Brief yield; in-flight write should land in <1ms typical.
-			time.Sleep(time.Millisecond)
 			continue
 		}
 		if !p.dirty {
@@ -357,6 +372,8 @@ func (s *service) flushOne(ctx context.Context, id string, syncCaller bool) erro
 
 		s.mu.Lock()
 		p.flushing = false
+		// Wake any synchronous flusher waiting for this write to land.
+		p.cond.Broadcast()
 		if err == nil {
 			p.lastFlushed = snap
 			p.hasFlushed = true
