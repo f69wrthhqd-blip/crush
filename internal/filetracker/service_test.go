@@ -2,6 +2,8 @@ package filetracker
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -27,7 +29,7 @@ func setupTest(t *testing.T) *testEnv {
 	return &testEnv{
 		ctx: t.Context(),
 		q:   q,
-		svc: NewService(q),
+		svc: NewService(q, t.TempDir()),
 	}
 }
 
@@ -113,4 +115,40 @@ func TestService_RecordRead_DifferentPaths(t *testing.T) {
 
 	lastRead2 := env.svc.LastReadTime(env.ctx, sessionID, path2)
 	require.True(t, lastRead2.IsZero(), "path2 should not be recorded")
+}
+
+// TestService_WorkingDirIsolation verifies that each service resolves and
+// records paths against its own injected working directory instead of the
+// process cwd, which is what multi-workspace (client/server) operation
+// requires.
+func TestService_WorkingDirIsolation(t *testing.T) {
+	env := setupTest(t)
+
+	workA := filepath.Join(t.TempDir(), "workspace-a")
+	workB := filepath.Join(t.TempDir(), "workspace-b")
+	require.NoError(t, os.MkdirAll(workA, 0o755))
+	require.NoError(t, os.MkdirAll(workB, 0o755))
+
+	svcA := NewService(env.q, workA)
+	svcB := NewService(env.q, workB)
+
+	sessionA, sessionB := "test-session-workdir-a", "test-session-workdir-b"
+	env.createSession(t, sessionA)
+	env.createSession(t, sessionB)
+
+	svcA.RecordRead(env.ctx, sessionA, filepath.Join(workA, "main.go"))
+	svcB.RecordRead(env.ctx, sessionB, filepath.Join(workB, "util.go"))
+
+	filesA, err := svcA.ListReadFiles(env.ctx, sessionA)
+	require.NoError(t, err)
+	require.Equal(t, []string{filepath.Join(workA, "main.go")}, filesA)
+
+	filesB, err := svcB.ListReadFiles(env.ctx, sessionB)
+	require.NoError(t, err)
+	require.Equal(t, []string{filepath.Join(workB, "util.go")}, filesB)
+
+	// Reads resolve against the injected working directory, not the
+	// process cwd.
+	require.False(t, svcA.LastReadTime(env.ctx, sessionA, filepath.Join(workA, "main.go")).IsZero())
+	require.False(t, svcB.LastReadTime(env.ctx, sessionB, filepath.Join(workB, "util.go")).IsZero())
 }

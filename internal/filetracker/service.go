@@ -27,18 +27,25 @@ type Service interface {
 
 type service struct {
 	q *db.Queries
+	// workingDir is the workspace directory relative paths are recorded
+	// against. It must be injected rather than derived from the process
+	// cwd so that multiple workspaces hosted by one process (client/server
+	// mode) each attribute files to their own directory.
+	workingDir string
 }
 
-// NewService creates a new file tracker service.
-func NewService(q *db.Queries) Service {
-	return &service{q: q}
+// NewService creates a new file tracker service. The workingDir is the
+// workspace directory used to relativize recorded paths; when empty the
+// process working directory is used as a fallback.
+func NewService(q *db.Queries, workingDir string) Service {
+	return &service{q: q, workingDir: workingDir}
 }
 
 // RecordRead records when a file was read.
 func (s *service) RecordRead(ctx context.Context, sessionID, path string) {
 	if err := s.q.RecordFileRead(ctx, db.RecordFileReadParams{
 		SessionID: sessionID,
-		Path:      relpath(path),
+		Path:      s.relpath(path),
 	}); err != nil {
 		slog.Error("Error recording file read", "error", err, "file", path)
 	}
@@ -49,7 +56,7 @@ func (s *service) RecordRead(ctx context.Context, sessionID, path string) {
 func (s *service) LastReadTime(ctx context.Context, sessionID, path string) time.Time {
 	readFile, err := s.q.GetFileRead(ctx, db.GetFileReadParams{
 		SessionID: sessionID,
-		Path:      relpath(path),
+		Path:      s.relpath(path),
 	})
 	if err != nil {
 		return time.Time{}
@@ -58,12 +65,18 @@ func (s *service) LastReadTime(ctx context.Context, sessionID, path string) time
 	return time.Unix(readFile.ReadAt, 0)
 }
 
-func relpath(path string) string {
+// relpath cleans path and makes it relative to the service's working
+// directory. Paths outside the working directory are stored as absolute.
+func (s *service) relpath(path string) string {
 	path = filepath.Clean(path)
-	basepath, err := os.Getwd()
-	if err != nil {
-		slog.Warn("Error getting basepath", "error", err)
-		return path
+	basepath := s.workingDir
+	if basepath == "" {
+		var err error
+		basepath, err = os.Getwd()
+		if err != nil {
+			slog.Warn("Error getting basepath", "error", err)
+			return path
+		}
 	}
 	relpath, err := filepath.Rel(basepath, path)
 	if err != nil {
@@ -80,13 +93,23 @@ func (s *service) ListReadFiles(ctx context.Context, sessionID string) ([]string
 		return nil, fmt.Errorf("listing read files: %w", err)
 	}
 
-	basepath, err := os.Getwd()
-	if err != nil {
-		return nil, fmt.Errorf("getting working directory: %w", err)
+	basepath := s.workingDir
+	if basepath == "" {
+		basepath, err = os.Getwd()
+		if err != nil {
+			return nil, fmt.Errorf("getting working directory: %w", err)
+		}
 	}
 
 	paths := make([]string, 0, len(readFiles))
 	for _, rf := range readFiles {
+		// Skip paths that were recorded relative to a different working
+		// directory: joining an absolute path onto a basepath would
+		// produce a corrupt path.
+		if filepath.IsAbs(rf.Path) {
+			paths = append(paths, rf.Path)
+			continue
+		}
 		paths = append(paths, filepath.Join(basepath, rf.Path))
 	}
 	return paths, nil
