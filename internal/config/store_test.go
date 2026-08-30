@@ -120,22 +120,38 @@ func TestConfigStore_RuntimeOverrides_Independent(t *testing.T) {
 	require.False(t, store1.Overrides().SkipPermissionRequests)
 	require.False(t, store2.Overrides().SkipPermissionRequests)
 
-	store1.Overrides().SkipPermissionRequests = true
+	store1.UpdateOverrides(func(o *RuntimeOverrides) {
+		o.SkipPermissionRequests = true
+	})
 
 	require.True(t, store1.Overrides().SkipPermissionRequests)
 	require.False(t, store2.Overrides().SkipPermissionRequests)
 }
 
-func TestConfigStore_RuntimeOverrides_MutableViaPointer(t *testing.T) {
+// TestConfigStore_RuntimeOverrides_ReturnsCopy verifies that Overrides
+// hands out a deep copy: mutating the returned value must not reach the
+// store's internal state.
+func TestConfigStore_RuntimeOverrides_ReturnsCopy(t *testing.T) {
 	t.Parallel()
 
 	store := &ConfigStore{config: &Config{}}
+	store.UpdateOverrides(func(o *RuntimeOverrides) {
+		o.EnabledChannels = []string{"alpha", "beta"}
+		o.Models = map[SelectedModelType]SelectedModel{
+			SelectedModelTypeLarge: {Provider: "p", Model: "m"},
+		}
+	})
+
 	overrides := store.Overrides()
-
-	require.False(t, overrides.SkipPermissionRequests)
-
 	overrides.SkipPermissionRequests = true
-	require.True(t, store.Overrides().SkipPermissionRequests)
+	overrides.EnabledChannels[0] = "mutated"
+	overrides.EnabledChannels = append(overrides.EnabledChannels, "extra")
+	overrides.Models[SelectedModelTypeLarge] = SelectedModel{Provider: "x", Model: "y"}
+
+	fresh := store.Overrides()
+	require.False(t, fresh.SkipPermissionRequests)
+	require.Equal(t, []string{"alpha", "beta"}, fresh.EnabledChannels)
+	require.Equal(t, SelectedModel{Provider: "p", Model: "m"}, fresh.Models[SelectedModelTypeLarge])
 }
 
 func TestGlobalWorkspaceDir(t *testing.T) {

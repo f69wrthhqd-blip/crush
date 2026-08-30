@@ -285,8 +285,10 @@ func setupLocalWorkspace(cmd *cobra.Command) (workspace.Workspace, func(), error
 	}
 
 	cfg := store.Config()
-	store.Overrides().SkipPermissionRequests = yolo
-	store.Overrides().EnabledChannels = channels
+	store.UpdateOverrides(func(o *config.RuntimeOverrides) {
+		o.SkipPermissionRequests = yolo
+		o.EnabledChannels = channels
+	})
 
 	if err := os.MkdirAll(cfg.Options.DataDirectory, 0o700); err != nil {
 		return nil, nil, fmt.Errorf("failed to create data directory: %q %w", cfg.Options.DataDirectory, err)

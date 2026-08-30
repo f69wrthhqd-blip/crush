@@ -246,11 +246,39 @@ func (s *ConfigStore) SetupAgents() {
 	s.Config().SetupAgents()
 }
 
-// Overrides returns the runtime overrides for this store.
-func (s *ConfigStore) Overrides() *RuntimeOverrides {
+// clone returns a deep copy of the overrides so callers can never reach
+// shared internal state through the returned value.
+func (o RuntimeOverrides) clone() RuntimeOverrides {
+	cloned := o
+	if o.EnabledChannels != nil {
+		cloned.EnabledChannels = slices.Clone(o.EnabledChannels)
+	}
+	if o.Models != nil {
+		cloned.Models = make(map[SelectedModelType]SelectedModel, len(o.Models))
+		maps.Copy(cloned.Models, o.Models)
+	}
+	return cloned
+}
+
+// Overrides returns a deep copy of the runtime overrides for this store.
+// Mutating the returned value does not affect the store; use
+// UpdateOverrides to change them.
+func (s *ConfigStore) Overrides() RuntimeOverrides {
 	s.writeMu.RLock()
 	defer s.writeMu.RUnlock()
-	return &s.overrides
+	return s.overrides.clone()
+}
+
+// UpdateOverrides applies fn to a deep copy of the store's runtime
+// overrides and publishes the result under the write lock, following the
+// same copy-on-write discipline as the typed Config mutators.
+func (s *ConfigStore) UpdateOverrides(fn func(*RuntimeOverrides)) {
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
+	overrides := s.overrides.clone()
+	fn(&overrides)
+	s.overrides = overrides.clone()
 }
 
 // LoadedPaths returns the config file paths that were successfully loaded.
