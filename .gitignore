@@ -54,3 +54,6 @@ manpages/
 completions/crush.*sh
 .prettierignore
 .task
+
+# ZCode CLI local directory
+.zcode/

@@ -23,11 +23,16 @@ var (
 // we use the embedded build version that *is* set when using `go install` (and
 // is only set for `go install` and not for `go build`).
 func init() {
-	info, ok := debug.ReadBuildInfo()
-	if ok {
-		mainVersion := info.Main.Version
-		if mainVersion != "" && mainVersion != "(devel)" {
-			Version = mainVersion
+	// The ldflags-set version always wins: since Go 1.24 a plain `go build`
+	// stamps Main.Version with a VCS pseudo-version instead of "(devel)",
+	// which would otherwise clobber the build-time value.
+	if Version == "devel" {
+		info, ok := debug.ReadBuildInfo()
+		if ok {
+			mainVersion := info.Main.Version
+			if mainVersion != "" && mainVersion != "(devel)" {
+				Version = mainVersion
+			}
 		}
 	}
 
